@@ -1,0 +1,2 @@
+# Generates compile_commands.json to asist neovim's LSP
+compiledb
