@@ -1,5 +1,10 @@
 #!/usr/bin/make -f
 
+GREEN = \033[1;32m
+YELLOW = \033[1;33m
+CYAN = \033[1;36m
+END = \033[0m
+
 #-------------------------------------------------------------------------------
 # Build variables
 #-------------------------------------------------------------------------------
@@ -22,11 +27,28 @@ CMN_HDRS := $(wildcard $(CMN_DIR)/*.h)
 CMN_SRCS := $(wildcard $(CMN_DIR)/*.cpp)
 CMN_OBJS := $(patsubst $(CMN_DIR)/%.cpp,%.o,$(CMN_SRCS))
 
-# TODO: Objs for master, worker, mapper, reducer
-HDRS := $(wildcard $(BASEDIR)/*.h)
-SRCS := $(wildcard $(BASEDIR)/*.cpp)
+# TODO: make this better
+MASTER_HDRS := $(wildcard $(BASEDIR)/Master*.h)
+MASTER_SRCS := $(wildcard $(BASEDIR)/Master*.cpp)
+MASTER_OBJS := $(notdir $(MASTER_SRCS:.cpp=.o))
+
+WORKER_HDRS := $(wildcard $(BASEDIR)/Worker*.h)
+WORKER_SRCS := $(wildcard $(BASEDIR)/Worker*.cpp)
+WORKER_OBJS := $(notdir $(WORKER_SRCS:.cpp=.o))
+
+MAPPER_HDRS := $(wildcard $(BASEDIR)/Mapper*.h)
+MAPPER_SRCS := $(wildcard $(BASEDIR)/Mapper*.cpp)
+MAPPER_OBJS := $(notdir $(MAPPER_SRCS:.cpp=.o))
+
+REDUCER_HDRS := $(wildcard $(BASEDIR)/Reducer*.h)
+REDUCER_SRCS := $(wildcard $(BASEDIR)/Reducer*.cpp)
+REDUCER_OBJS := $(notdir $(REDUCER_SRCS:.cpp=.o))
+
 # Flattens SRCS into the top level folder
-OBJS := $(patsubst $(BASEDIR)/%.cpp,%.o,$(SRCS)) 
+# OBJS := $(patsubst $(BASEDIR)/%.cpp,%.o,$(SRCS)) 
+# OBJS := $(notdir $(SRCS))
+
+# MASTER_SRCS :=  $(filter )
 
 TARGET := master worker mapper reducer
 #-------------------------------------------------------------------------------
@@ -40,24 +62,44 @@ builddir:
 debug: DFLAGS := -ggdb -DDEBUG
 debug: $(TARGET)
 
-master: $(CMN_OBJS)
-	@echo "TODO: $@ build rule"
+master: builddir $(BIN)/master
+worker: builddir $(BIN)/worker
+mapper: builddir $(BIN)/mapper 
+reducer: builddir $(BIN)/reducer
+	
 
-worker: $(BIN)/worker
+$(BIN)/master: $(CMN_OBJS) $(MASTER_OBJS)
+	@echo "$(YELLOW)Compile $@$(END)"
+	$(CXX) $(CFLAGS) $(LFLAGS) -o $@ $^
 
-$(BIN)/worker: $(CMN_OBJS) $(OBJS)
-	@echo "Compile $@"
+$(BIN)/worker: $(CMN_OBJS) $(WORKER_OBJS)
+	@echo "$(YELLOW)Compile $@$(END)"
 	$(CXX) $(LFLAGS) -o $@ $^
 
-mapper: $(CMN_OBJS)
-	@echo "TODO: $@ build rule"
+$(BIN)/mapper: $(CMN_OBJS) $(MAPPER_OBJS)
+	@echo "$(YELLOW)Compile $@$(END)"
+	$(CXX) $(CFLAGS) $(LFLAGS) -o $@ $^
 
-reducer: $(CMN_OBJS)
-	@echo "TODO: $@ build rule"
+$(BIN)/reducer: $(CMN_OBJS) $(REDUCER_OBJS)
+	@echo "$(YELLOW)Compile $@$(END)"
+	$(CXX) $(CFLAGS) $(LFLAGS) -o $@ $^
 
-$(OBJS): $(SRCS) $(HDRS)
+
+$(WORKER_OBJS): $(WORKER_HDRS) $(CMN_OBJS)
 	@echo "Compile $@"
-	$(CXX) $(CFLAGS) $(DFLAGS) -c $(SRCS)
+	$(CXX) $(CFLAGS) $(LFLAGS) $(DFLAGS) -c $(WORKER_SRCS) $^
+
+$(MASTER_OBJS): $(MASTER_HDRS) $(CMN_OBJS)
+	@echo "Compile $@"
+	$(CXX) $(CFLAGS) $(LFLAGS) $(DFLAGS) -c $(MASTER_SRCS) $^
+
+$(MAPPER_OBJS): $(MAPPER_HDRS) $(CMN_OBJS)
+	@echo "Compile $@"
+	$(CXX) $(CFLAGS) $(LFLAGS) $(DFLAGS) -c $(MAPPER_SRCS) $^
+
+$(REDUCER_OBJS): $(REDUCER_HDRS) $(CMN_OBJS)
+	@echo "Compile $@"
+	$(CXX) $(CFLAGS) $(LFLAGS) $(DFLAGS) -c $(REDUCER_SRCS) $^
 
 
 # Build any shared dependencies
