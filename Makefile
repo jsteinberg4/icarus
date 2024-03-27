@@ -28,27 +28,21 @@ CMN_SRCS := $(wildcard $(CMN_DIR)/*.cpp)
 CMN_OBJS := $(patsubst $(CMN_DIR)/%.cpp,%.o,$(CMN_SRCS))
 
 # TODO: make this better
-MASTER_HDRS := $(wildcard $(BASEDIR)/Master*.h)
-MASTER_SRCS := $(wildcard $(BASEDIR)/Master*.cpp)
+MASTER_HDRS := $(wildcard $(BASEDIR)/master*.h)
+MASTER_SRCS := $(wildcard $(BASEDIR)/master*.cpp)
 MASTER_OBJS := $(notdir $(MASTER_SRCS:.cpp=.o))
 
-WORKER_HDRS := $(wildcard $(BASEDIR)/Worker*.h)
-WORKER_SRCS := $(wildcard $(BASEDIR)/Worker*.cpp)
+WORKER_HDRS := $(wildcard $(BASEDIR)/worker*.h)
+WORKER_SRCS := $(wildcard $(BASEDIR)/worker*.cpp)
 WORKER_OBJS := $(notdir $(WORKER_SRCS:.cpp=.o))
 
-MAPPER_HDRS := $(wildcard $(BASEDIR)/Mapper*.h)
-MAPPER_SRCS := $(wildcard $(BASEDIR)/Mapper*.cpp)
+MAPPER_HDRS := $(wildcard $(BASEDIR)/mapper*.h)
+MAPPER_SRCS := $(wildcard $(BASEDIR)/mapper*.cpp)
 MAPPER_OBJS := $(notdir $(MAPPER_SRCS:.cpp=.o))
 
-REDUCER_HDRS := $(wildcard $(BASEDIR)/Reducer*.h)
-REDUCER_SRCS := $(wildcard $(BASEDIR)/Reducer*.cpp)
+REDUCER_HDRS := $(wildcard $(BASEDIR)/reducer*.h)
+REDUCER_SRCS := $(wildcard $(BASEDIR)/reducer*.cpp)
 REDUCER_OBJS := $(notdir $(REDUCER_SRCS:.cpp=.o))
-
-# Flattens SRCS into the top level folder
-# OBJS := $(patsubst $(BASEDIR)/%.cpp,%.o,$(SRCS)) 
-# OBJS := $(notdir $(SRCS))
-
-# MASTER_SRCS :=  $(filter )
 
 TARGET := master worker mapper reducer
 #-------------------------------------------------------------------------------
