@@ -33,3 +33,9 @@
 
 # Build targets
 bin/
+
+
+# Build tools
+.compile_commands.json
+.cache/
+venv/ 
