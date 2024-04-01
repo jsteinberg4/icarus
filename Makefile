@@ -62,38 +62,38 @@ mapper: builddir $(BIN)/mapper
 reducer: builddir $(BIN)/reducer
 	
 
-$(BIN)/master: $(CMN_OBJS) $(MASTER_OBJS)
-	@echo "$(YELLOW)Compile $@$(END)"
-	$(CXX) $(CFLAGS) $(LFLAGS) -o $@ $^
-
-$(BIN)/worker: $(CMN_OBJS) $(WORKER_OBJS)
+$(BIN)/master: $(MASTER_OBJS) $(CMN_OBJS)
 	@echo "$(YELLOW)Compile $@$(END)"
 	$(CXX) $(LFLAGS) -o $@ $^
 
-$(BIN)/mapper: $(CMN_OBJS) $(MAPPER_OBJS)
+$(BIN)/worker: $(WORKER_OBJS) $(CMN_OBJS)
 	@echo "$(YELLOW)Compile $@$(END)"
-	$(CXX) $(CFLAGS) $(LFLAGS) -o $@ $^
+	$(CXX) $(LFLAGS) -o $@ $^
 
-$(BIN)/reducer: $(CMN_OBJS) $(REDUCER_OBJS)
+$(BIN)/mapper: $(MAPPER_OBJS) $(CMN_OBJS)
 	@echo "$(YELLOW)Compile $@$(END)"
-	$(CXX) $(CFLAGS) $(LFLAGS) -o $@ $^
+	$(CXX) $(LFLAGS) -o $@ $^
+
+$(BIN)/reducer: $(REDUCER_OBJS) $(CMN_OBJS)
+	@echo "$(YELLOW)Compile $@$(END)"
+	$(CXX) $(LFLAGS) -o $@ $^
 
 
-$(WORKER_OBJS): $(WORKER_HDRS) $(CMN_OBJS)
+$(WORKER_OBJS): $(WORKER_HDRS) $(WORKER_SRCS)
 	@echo "Compile $@"
-	$(CXX) $(CFLAGS) $(LFLAGS) $(DFLAGS) -c $(WORKER_SRCS) $^
+	$(CXX) $(CFLAGS) $(DFLAGS) -c $(WORKER_SRCS)
 
-$(MASTER_OBJS): $(MASTER_HDRS) $(CMN_OBJS)
+$(MASTER_OBJS): $(MASTER_HDRS) $(MASTER_SRCS)
 	@echo "Compile $@"
-	$(CXX) $(CFLAGS) $(LFLAGS) $(DFLAGS) -c $(MASTER_SRCS) $^
+	$(CXX) $(CFLAGS)  $(DFLAGS) -c $(MASTER_SRCS)
 
-$(MAPPER_OBJS): $(MAPPER_HDRS) $(CMN_OBJS)
+$(MAPPER_OBJS): $(MAPPER_HDRS) $(MAPPER_SRCS)
 	@echo "Compile $@"
-	$(CXX) $(CFLAGS) $(LFLAGS) $(DFLAGS) -c $(MAPPER_SRCS) $^
+	$(CXX) $(CFLAGS) $(DFLAGS) -c $(MAPPER_SRCS)
 
-$(REDUCER_OBJS): $(REDUCER_HDRS) $(CMN_OBJS)
+$(REDUCER_OBJS): $(REDUCER_HDRS) $(REDUCER_SRCS)
 	@echo "Compile $@"
-	$(CXX) $(CFLAGS) $(LFLAGS) $(DFLAGS) -c $(REDUCER_SRCS) $^
+	$(CXX) $(CFLAGS) $(DFLAGS) -c $(REDUCER_SRCS)
 
 
 # Build any shared dependencies
@@ -103,9 +103,4 @@ $(CMN_OBJS): $(CMN_SRCS) $(CMN_HDRS)
 clean:
 	rm -rf $(BIN) *.o
 
-hello:
-	@echo "hello"
-	@echo "$(OBJS)"
-	@echo "$(CMN_OBJS)"
-
-.PHONY: clean hello
+.PHONY: clean

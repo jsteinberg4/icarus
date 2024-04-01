@@ -10,13 +10,6 @@
 
 namespace common {
 class Socket {
-protected:
-  int fd_;
-  bool is_initialized_;
-
-private:
-  int nagle_;
-
 public:
   Socket();
   virtual ~Socket();
@@ -28,5 +21,12 @@ public:
   bool IsNagleOn();
 
   void Close();
+
+protected:
+  int fd_;
+  bool is_initialized_;
+
+private:
+  int nagle_;
 };
 } // namespace common

@@ -1,12 +1,18 @@
 #pragma once
 
 #include "common/task.h"
+#include "common/tcp_socket.h"
 #include <string>
 
 namespace worker {
 class WorkerStub {
-  void Register(std::string ip, int port /* TODO: Worker's metadata */);
+public:
+  bool Register(std::string ip, int port /* TODO: Worker's metadata */);
   common::Task RequestTask();
-  void SubmitTask(/* TODO: Task status */);
+  void SubmitTask(common::Task &t,
+                  common::Status status /* TODO: Task status */);
+
+private:
+  common::TcpSocket socket;
 };
 } // namespace worker

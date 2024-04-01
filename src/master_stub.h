@@ -1,6 +1,8 @@
 #pragma once
 
 #include "common/task.h"
+#include "common/tcp_socket.h"
+#include <memory>
 namespace master {
 
 /**
@@ -10,7 +12,11 @@ namespace master {
  *
  */
 class MasterStub {
-  void Init(/* TODO: Socket? */);
+public:
+  MasterStub();
+  ~MasterStub();
+
+  void Init(std::unique_ptr<common::TcpSocket> socket);
 
   // -------------------
   // Client coordination
@@ -32,5 +38,8 @@ class MasterStub {
    * @param t map or reduce task configuration
    */
   void AssignTask(common::Task &t /* TODO: what else? */);
+
+private:
+  std::unique_ptr<common::TcpSocket> socket;
 };
 } // namespace master
