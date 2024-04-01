@@ -1,6 +1,8 @@
 // Usage:
 // ./worker <master IP> <# workers>
 
+#include "worker_node.h"
+#include <__algorithm/remove.h>
 #include <algorithm>
 #include <cerrno>
 #include <chrono>
@@ -33,6 +35,13 @@ static void signals_init(void) {
   sigaction(SIGINT, &sa, NULL);
 }
 
+void kill_worker(pid_t worker) {
+  if (kill(worker, SIGKILL) != 0) {
+    std::cerr << "exit: problem killing child pid=" << worker << "\n\t"
+              << std::strerror(errno) << "\n";
+  }
+}
+
 }; // namespace coordinator
 
 int main(int argc, char *argv[]) {
@@ -42,61 +51,51 @@ int main(int argc, char *argv[]) {
   std::vector<pid_t> workers;
 
   if (argc != 4) {
+    // TODO: Cmdline arg to randomly kill child procs
     std::cout << USAGE;
     return 1;
   }
-
   ip = std::string(argv[1]);
   port = atoi(argv[2]);
   n_workers = atoi(argv[3]);
-
   coordinator::signals_init();
+
+  // Maintain a pool of workers. Cleanup on SIGINT
   while (!coordinator::quit) {
+    int estatus = 0;
+    pid_t dead = -1;
+
     if (workers.size() < n_workers) {
       pid_t c_pid = fork();
 
       if (c_pid == 0) {
-        pid_t self = getpid();
-        while (1) {
-          if (std::rand() % 2 == 0) {
-            std::cout << "Random proc death pid=" << self << "\n";
+        std::cout << "Starting new worker\n";
+        worker::WorkerNode child;
+        child.Run(ip, port);
+        std::cout << "Return from worker run\n";
+        return 1;
 
-            return 0;
-            /* exit(0); */
-          }
-
-          std::cout << "Child: pid=" << self << "\n";
-          std::this_thread::sleep_for(std::chrono::seconds(10));
-        }
       } else {
+        std::cout << "Inserting new child process: " << c_pid << "\n";
         workers.push_back(c_pid);
+
+        std::cout << "Current pids: [ ";
+        std::for_each(workers.begin(), workers.end(),
+                      [](pid_t p) { std::cout << p << ", "; });
+        std::cout << "] size=" << workers.size() << "\n";
       }
     }
 
-    if (!workers.empty()) {
-
-      auto isDead = [](pid_t p) { return kill(p, 0) != 0; };
-      /* workers.erase(std::remove_if(workers.begin(), workers.end(), isDead));
-       */
-      /* std::this_thread::sleep_for(std::chrono::seconds(2)); */
-      int estatus = 0;
-      auto pid = waitpid(-1, &estatus, WNOHANG);
-      std::cout << "Proc died: =" << pid << "\n";
-      std::for_each(workers.begin(), workers.end(), [isDead](pid_t p) {
-        std::cout << p << (isDead(p) ? "=dead\n" : "=alive\n");
-      });
-      workers.erase(std::remove_if(workers.begin(), workers.end(), isDead),
+    if ((dead = waitpid(-1, &estatus, WNOHANG)) > 0) {
+      workers.erase(std::remove(workers.begin(), workers.end(), dead),
                     workers.end());
+      std::cout << "Removed dead(?) process id=" << dead << "\n";
     }
     std::this_thread::sleep_for(std::chrono::seconds(rand() % 3));
   }
 
-  for (pid_t child : workers) {
-    if (kill(child, SIGKILL) != 0) {
-      std::cerr << "exit: problem killing child pid=" << child << "\n\t"
-                << std::strerror(errno) << "\n";
-    }
-  }
+  // Cleanup child processes
+  std::for_each(workers.begin(), workers.end(), coordinator::kill_worker);
 
   return 0;
 }
