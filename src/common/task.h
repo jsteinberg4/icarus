@@ -4,11 +4,23 @@
 #include <string>
 namespace common {
 
-// TODO: Migrate to separate header
-class Marshallable {
+/* The status of a Map or Reduce task. */
+enum class Status {
+  Idle = 0, // Idle: The task is not currently running/scheduled. Can also be
+            // used to mark tasks as failed
+  InProgress = 1, // InProgress: The task is currently scheduled to run
+  Done = 2,       // Done: The task has successfully completed on a worker
+};
+
+class Task {
 public:
-  Marshallable() = delete;
-  virtual ~Marshallable();
+  Task() : obj_path(), input_path(), result_path(), status(Status::Idle){};
+  /**
+   * @brief Checks if the task has been initialized
+   *
+   * @return true if properly initialized, false otherwise
+   */
+  bool Valid() const;
 
   /**
    * @brief Write this object as a bytestring
@@ -18,7 +30,7 @@ public:
    * contain object serialization.
    * @return n bytes written
    */
-  virtual int Marshall(std::unique_ptr<char> buffer, int bufsize) const;
+  int Marshall(std::unique_ptr<char> buffer, int bufsize) const;
 
   /**
    * @brief Initialize this object from a bytestring
@@ -26,32 +38,7 @@ public:
    * @param buffer bytestring of object data
    * @param bufsize length of the bytestring
    */
-  virtual void Unmarshall(std::unique_ptr<char> buffer, int bufsize) const;
-};
-
-/* The status of a Map or Reduce task.
- *
-// InProgress: The task is currently scheduled to run
-// Done: The task has successfully completed on a worker
- * */
-enum class Status {
-  Idle = 0, // Idle: The task is not currently running/scheduled. Can also be
-            // used to mark tasks as failed
-  InProgress = 1, // InProgress: The task is currently scheduled to run
-  Done = 2,       // Done: The task has successfully completed on a worker
-};
-
-class Task : virtual public Marshallable {
-public:
-  /**
-   * @brief Checks if the task has been initialized
-   *
-   * @return true if properly initialized, false otherwise
-   */
-  inline bool Valid() const { return true; }
-
-  int Marshall(std::unique_ptr<char> buffer, int bufsize) const override;
-  void Unmarshall(std::unique_ptr<char> buffer, int bufsize) const override;
+  void Unmarshall(std::unique_ptr<char> buffer, int bufsize) const;
 
 private:
   std::string obj_path;

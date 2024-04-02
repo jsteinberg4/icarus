@@ -1,5 +1,9 @@
 #include "master_node.h"
+#include "common/tcp_socket.h"
 #include <iostream>
+#include <memory>
+#include <thread>
+#include <vector>
 
 namespace master {
 
@@ -33,13 +37,33 @@ void MasterNode::ServeRequests(int port) {
     std::cerr << "Unable to bind to port=" << port << std::endl;
     return;
   }
-  /* this->server.Accept(); */
-
   // TODO: Initialize a few threads
   // - T0: Listen for incoming clients (user clients or workers). Assign a
   //       thread to handle each.
+  //       DONE: Use current thread
   // - T1: Client connection handler
   // - T2-n workers: Pool of threads for worker comms
+  /* std::thread main = std::thread{&MasterNode::ConnectionListenerThread,
+   * this}; */
+  std::thread client_handler;
+  std::vector<std::thread> worker_channels; // size: this->workers
+
+  // TODO: Spawn other threads first
+  this->ConnectionListenerThread();
 }
 
+// ---------------
+// Private functions
+// ---------------
+void MasterNode::ConnectionListenerThread() {
+  std::unique_ptr<common::TcpSocket> in_sock;
+
+  // TODO: Lock? probably not needed as long as only this thread uses
+  while ((in_sock = this->server.Accept())) {
+    // FIXME: This is unnecessarily complex
+    this->incoming_sockets.push(std::move(*(in_sock.release())));
+  }
+}
+
+void MasterNode::ClientConnHandler() {}
 } // namespace master

@@ -2,6 +2,7 @@
 
 #include "common/tcp_socket.h"
 #include <memory>
+#include <queue>
 #include <string>
 namespace master {
 
@@ -71,6 +72,7 @@ private:
   int task_size_default;
   std::string fs_root;
   common::TcpSocket server;
+  std::queue<common::TcpSocket> incoming_sockets;
 
   // TODO: Client connection data structs
   // TODO: Worker connection data structs
