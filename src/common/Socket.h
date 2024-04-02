@@ -9,6 +9,14 @@
 #define NAGLE_OFF 1
 
 namespace common {
+/**
+ * @class Socket
+ * @brief Abstraction of a raw unix socket
+ *
+ *
+ * Original Author: Ji-Yong Shin (j.shin@northeastern.edu)
+ * Adapted by: Jesse Steinberg (jessesteinberg01@gmail.com)
+ */
 class Socket {
 public:
   Socket();

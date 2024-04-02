@@ -7,6 +7,7 @@
 namespace worker {
 class WorkerStub {
 public:
+  // TODO: Change return type to master's registration response
   bool Register(std::string ip, int port /* TODO: Worker's metadata */);
   common::Task RequestTask();
   void SubmitTask(common::Task &t,

@@ -40,7 +40,7 @@ common::Status WorkerNode::ExecTask(common::Task &t) {
 
   if (pid < 0) {
     std::cerr << "WorkerNode::ExecTask: failed to fork task\n";
-    return common::Status::Failed;
+    return common::Status::Idle;
   } else if (pid == 0) { // Child
     // TODO: Exec the task
     // TODO: non-dummy task
@@ -65,7 +65,7 @@ common::Status WorkerNode::ExecTask(common::Task &t) {
     return common::Status::Done;
   } else {
     std::cout << "Worker parent pid=" << self << " task failed\n";
-    return common::Status::Failed;
+    return common::Status::Idle;
   }
 }
 

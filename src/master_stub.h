@@ -16,7 +16,12 @@ public:
   MasterStub();
   ~MasterStub();
 
+  // -------------------
+  // Initialization
+  // -------------------
   void Init(std::unique_ptr<common::TcpSocket> socket);
+  void RecvRegistration(); // TODO:
+  void AckRegistration();  // TODO:
 
   // -------------------
   // Client coordination

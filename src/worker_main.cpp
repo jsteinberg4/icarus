@@ -2,7 +2,6 @@
 // ./worker <master IP> <# workers>
 
 #include "worker_node.h"
-#include <__algorithm/remove.h>
 #include <algorithm>
 #include <cerrno>
 #include <chrono>
@@ -17,7 +16,7 @@
 #include <unistd.h> // For fork
 #include <vector>
 
-#define USAGE "./worker <master IP> <master port> <# workers>\n"
+#define USAGE "./worker <master IP> <master port> <# workers>"
 
 namespace coordinator {
 volatile static std::sig_atomic_t quit;
@@ -52,7 +51,7 @@ int main(int argc, char *argv[]) {
 
   if (argc != 4) {
     // TODO: Cmdline arg to randomly kill child procs
-    std::cout << USAGE;
+    std::cout << USAGE << std::endl;
     return 1;
   }
   ip = std::string(argv[1]);

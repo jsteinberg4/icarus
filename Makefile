@@ -62,19 +62,19 @@ mapper: builddir $(BIN)/mapper
 reducer: builddir $(BIN)/reducer
 	
 
-$(BIN)/master: $(MASTER_OBJS) $(CMN_OBJS)
+$(BIN)/master: $(CMN_OBJS) $(MASTER_OBJS) 
 	@echo "$(YELLOW)Compile $@$(END)"
 	$(CXX) $(LFLAGS) -o $@ $^
 
-$(BIN)/worker: $(WORKER_OBJS) $(CMN_OBJS)
+$(BIN)/worker: $(CMN_OBJS) $(WORKER_OBJS)
 	@echo "$(YELLOW)Compile $@$(END)"
 	$(CXX) $(LFLAGS) -o $@ $^
 
-$(BIN)/mapper: $(MAPPER_OBJS) $(CMN_OBJS)
+$(BIN)/mapper: $(CMN_OBJS) $(MAPPER_OBJS)
 	@echo "$(YELLOW)Compile $@$(END)"
 	$(CXX) $(LFLAGS) -o $@ $^
 
-$(BIN)/reducer: $(REDUCER_OBJS) $(CMN_OBJS)
+$(BIN)/reducer: $(CMN_OBJS) $(REDUCER_OBJS)
 	@echo "$(YELLOW)Compile $@$(END)"
 	$(CXX) $(LFLAGS) -o $@ $^
 
