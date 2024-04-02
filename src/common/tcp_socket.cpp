@@ -6,6 +6,7 @@
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <cstring>
 
 #include "tcp_socket.h"
 
