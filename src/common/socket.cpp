@@ -1,6 +1,7 @@
 #include "socket.h"
 
 #include <assert.h>
+#include <iostream>
 #include <stdio.h>
 #include <unistd.h>
 
@@ -25,6 +26,7 @@ int Socket::Send(char *buffer, int size, int flags) {
   int bytes_written = 0;
   int offset = 0;
   while (size > 0) {
+    std::cout << "Socket::Send writing bytes...\n";
     bytes_written = send(fd_, buffer + offset, size, flags);
     if (bytes_written < 0) {
       /*
@@ -41,14 +43,15 @@ int Socket::Send(char *buffer, int size, int flags) {
     offset += bytes_written;
     assert(size >= 0);
   }
-  return 1;
+  return bytes_written;
 }
 
 int Socket::Recv(char *buffer, int size, int flags) {
   int bytes_read = 0;
   int offset = 0;
   while (size > 0) {
-    bytes_read = recv(fd_, buffer + offset, size, flags);
+    std::cout << "Socket::Recv: reading bytes...\n";
+    bytes_read = recv(this->fd_, buffer + offset, size, flags);
     if (bytes_read <= 0) {
       /*
       if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -66,7 +69,7 @@ int Socket::Recv(char *buffer, int size, int flags) {
     offset += bytes_read;
     assert(size >= 0);
   }
-  return 1;
+  return bytes_read;
 }
 
 int Socket::NagleOn(bool on_off) {

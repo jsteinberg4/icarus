@@ -17,7 +17,7 @@ public:
   TcpSocket(int fd, bool nagle_on);
   ~TcpSocket();
 
-  inline TcpSocket(common::TcpSocket &&other) {}
+  /* inline TcpSocket(common::TcpSocket &&other) {} */
 
   /**
    * @brief Initialize a TCP server and start listening

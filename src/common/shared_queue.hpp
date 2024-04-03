@@ -18,7 +18,6 @@ namespace common {
  *
  * Comparison with std::queue API
  * Member functions:
- *  TODO: operator= assigns values to the container adaptor (public)
  *  ----
  *  Element access:
  *  ---> These may not be easy to make thread safe!!
@@ -26,11 +25,10 @@ namespace common {
  *  (-) front | access the first element | (public member function)
  *  (-) back | access the last element | (public member function)
  *  ---
- * TODO:  Capacity:
+ * Capacity:
  *  (✓) empty | checks whether the container adaptor is empty | (public)
  *  (✓) size | returns the number of elements | (public member)
  *  ----
- *  TODO:
  *  Modifiers:
  *  ( ) push | inserts element at the end | (public member function)
  *  (✓) emplace (C++11) | constructs element in-place at the end | (public)
@@ -59,22 +57,6 @@ public:
   shared_queue<T>(uint32_t host_tid) noexcept : queue(), mtx(), has_items(){};
 
   /**
-   * @brief Provide access to the lock protecting this queue
-   *
-   * @return reference to lock
-   */
-  inline std::mutex &getLock() noexcept { return this->mtx; }
-
-  /**
-   * @brief Provides access to this queue's guard
-   *
-   * @return reference to the queue's guard
-   */
-  inline std::condition_variable &getGuard() noexcept {
-    return this->has_items;
-  }
-
-  /**
    * @brief Current queue size
    * Note: Read only; does not lock
    *
@@ -95,7 +77,7 @@ public:
    *
    * @param value element reference
    */
-  void push(const T &value) {
+  inline void push(const T &value) {
     std::unique_lock<std::mutex> lock{this->mtx};
     this->log.Trace("push(const T&): Pushing new value");
     this->queue.push(value);
@@ -110,7 +92,7 @@ public:
    *
    * @param value element to move
    */
-  void push(T &&value) {
+  inline void push(T &&value) {
     std::unique_lock<std::mutex> lock{this->mtx};
     this->queue.push(value);
     this->has_items.notify_all();
@@ -128,7 +110,7 @@ public:
    * std::pair::second is true. This prevents undefined behavior when the queue
    * is empty.
    */
-  std::unique_ptr<T> pop() {
+  inline std::unique_ptr<T> pop() {
     std::unique_lock<std::mutex> lock{this->mtx};
 
     while (this->empty()) { // Block until items arrive
@@ -150,11 +132,28 @@ public:
    * @tparam types of T ctor arguments
    * @param args arguments to forward to elment constructor
    */
-  template <class... Args> void emplace(Args &&...args) {
+  template <class... Args> inline void emplace(Args &&...args) {
     std::unique_lock<std::mutex> lock{this->mtx};
     this->queue.emplace(std::forward<Args>(args)...);
     this->has_items.notify_all();
     // (implicit) release lock!
+  }
+
+protected:
+  /**
+   * @brief Provide access to the lock protecting this queue
+   *
+   * @return reference to lock
+   */
+  inline std::mutex &getLock() noexcept { return this->mtx; }
+
+  /**
+   * @brief Provides access to this queue's guard
+   *
+   * @return reference to the queue's guard
+   */
+  inline std::condition_variable &getGuard() noexcept {
+    return this->has_items;
   }
 };
 } // namespace common

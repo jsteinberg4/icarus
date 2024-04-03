@@ -1,4 +1,5 @@
 #include "master_node.h"
+#include "common/messages.h"
 #include "common/tcp_socket.h"
 #include "master_stub.h"
 #include <iostream>
@@ -14,7 +15,7 @@ namespace master {
 // ---------------
 MasterNode::MasterNode() {
   this->client_active = false;
-  this->n_coordinators = DEFAULT_WORKER_POOL;
+  /* this->n_coordinators = DEFAULT_WORKER_POOL; */
   this->task_size_default = DEFAULT_TASK_SIZE;
 }
 MasterNode::~MasterNode() {}
@@ -24,7 +25,8 @@ MasterNode::~MasterNode() {}
 // ---------------
 
 void MasterNode::SetScheduler(TaskScheduler ts) { this->scheduler = ts; }
-void MasterNode::SetWorkers(int n_workers) { this->n_coordinators = n_workers; }
+/* void MasterNode::SetWorkers(int n_workers) { this->n_coordinators =
+ * n_workers; } */
 void MasterNode::SetDefaultTaskSize(int size) {
   this->task_size_default = size;
 }
@@ -49,12 +51,13 @@ void MasterNode::ServeRequests(int port) {
   std::vector<std::thread> coordinators; // size: this->workers
 
   // Dedicated client thread for better latency
-  std::thread client_handler{&MasterNode::CoordinatorThread, this};
+  // TODO: change function to handle client specifically
+  /* std::thread client_handler{&MasterNode::CoordinatorThread, this}; */
 
   // Thread pool to handle worker coordination
-  for (auto i = 0; i < this->n_coordinators; i++) {
-    coordinators.emplace_back(&MasterNode::CoordinatorThread, this);
-  }
+  /* for (auto i = 0; i < this->n_coordinators; i++) { */
+  /*   coordinators.emplace_back(&MasterNode::CoordinatorThread, this); */
+  /* } */
 
   this->ConnectionListenerThread();
 }
@@ -67,22 +70,40 @@ void MasterNode::ConnectionListenerThread() {
 
   // TODO: Lock? probably not needed as long as only this thread uses
   while ((in_sock = this->server.Accept())) {
+    std::cout << "ConnectionListenerThread: accepted a new connection\n";
     // FIXME: This is unnecessarily complex
-    this->incoming_sockets.push(std::move(*(in_sock.release())));
+    /* this->incoming_sockets.push(std::move(*(in_sock.release()))); */
+    this->coordinators.emplace_back(&MasterNode::CoordinatorThread, this,
+                                    std::move(in_sock));
+    std::cout << "ConnectionListenerThread: new thread spawned\n";
   }
 }
 
-void MasterNode::CoordinatorThread() {
+void MasterNode::CoordinatorThread(std::unique_ptr<common::TcpSocket> sock) {
+  std::cout << "CoordinatorThread start\n";
+  auto stub = std::make_unique<MasterStub>();
+
+  stub->Init(std::move(sock));
+  std::cout << "MasterNode::CoordinatorThread stub is initialized\n";
+  auto node_type = stub->RecvRegistration();
+
+  // TODO: Do some work to register & ack registration
+  switch (node_type) {
+  case common::rpc::NodeType::Master:
+    std::cerr << "Received a connection from another master!\n";
+    break;
+  case common::rpc::NodeType::Worker:
+    std::cout << "Received a connection from a worker!\n";
+    break;
+  case common::rpc::NodeType::Client:
+    std::cout << "Received a connection from a new client!\n";
+    break;
+  case common::rpc::NodeType::Invalid:
+  default:
+    std::cerr << "Received a connection with invalid registration type\n";
+  }
 
   while (true) {
-    std::unique_ptr<common::TcpSocket> sock;
-    std::unique_ptr<MasterStub> stub;
-
-    sock = this->incoming_sockets.pop();
-    stub->Init(std::move(sock));
-    stub->RecvRegistration();
-    // TODO: Do some work to register
-    stub->AckRegistration(/* TODO: */);
     // TODO: Start handling requests
   }
 }

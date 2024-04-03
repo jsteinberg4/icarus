@@ -2,7 +2,10 @@
 
 #include "common/shared_queue.hpp"
 #include "common/tcp_socket.h"
+#include <atomic>
 #include <string>
+#include <thread>
+#include <vector>
 namespace master {
 
 constexpr int DEFAULT_WORKER_POOL = 16;
@@ -32,11 +35,12 @@ public:
   void SetScheduler(TaskScheduler ts);
 
   /**
+   * TODO: Remove
    * @brief Set the number of threads communicating with worker nodes
    *
    * @param n_workers [TODO:parameter]
    */
-  void SetWorkers(int n_workers);
+  /* void SetWorkers(int n_workers); */
 
   /**
    * @brief Default size to partition user's input file
@@ -64,14 +68,14 @@ public:
 
 private:
   // Track if there are active clients
-  bool client_active;
+  std::atomic_bool client_active;
 
   TaskScheduler scheduler;
-  int n_coordinators; // num threads talking to workers
+  /* int n_coordinators; // num threads talking to workers */
+  std::vector<std::thread> coordinators; // Threads talking to workers
   int task_size_default;
   std::string fs_root;
   common::TcpSocket server;
-  common::shared_queue<common::TcpSocket> incoming_sockets;
 
   // TODO: Client connection data structs
   // TODO: Worker connection data structs
@@ -80,6 +84,6 @@ private:
   void ConnectionListenerThread();
 
   // Thread to comm w/ client. Should only have one.
-  void CoordinatorThread();
+  void CoordinatorThread(std::unique_ptr<common::TcpSocket> sock);
 };
 } // namespace master

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/messages.h"
 #include "common/task.h"
 #include "common/tcp_socket.h"
 #include <memory>
@@ -13,20 +14,29 @@ namespace master {
  */
 class MasterStub {
 public:
-  MasterStub();
-  ~MasterStub();
+  MasterStub() = default;
+  ~MasterStub() = default;
 
   // -------------------
   // Initialization
   // -------------------
-  void Init(std::unique_ptr<common::TcpSocket> socket);
-  void RecvRegistration(); // TODO:
-  void AckRegistration();  // TODO:
+  /**
+   * @brief Set the socket for this stub
+   *
+   * @param socket active TCP socket connected to another node
+   */
+  void Init(std::unique_ptr<common::TcpSocket> sock);
+
+  /**
+   * @brief Receive a node's identification message
+   */
+  common::rpc::NodeType RecvRegistration() noexcept;
+  /* void AckRegistration();                   // TODO: */
 
   // -------------------
   // Client coordination
   // -------------------
-  void ClientAccept(/* TODO: */);
+  // void ClientAccept(/* TODO: */);
 
   // -------------------
   // Worker coordination
@@ -41,6 +51,7 @@ public:
    * Tell worker to complete a task
    *
    * @param t map or reduce task configuration
+   * TODO: Assigned tasks should be sent with status InProgress
    */
   void AssignTask(common::Task &t /* TODO: what else? */);
 

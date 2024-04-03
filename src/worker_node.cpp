@@ -22,11 +22,12 @@ void WorkerNode::Run(std::string master_ip, int port) {
     std::cout << "Requesting a new task!\n";
     common::Task t = this->stub.RequestTask();
 
-    if (t.Valid()) {
+    if (t.GetStatus() == common::Status::InProgress) {
       auto status = this->ExecTask(t); // Handle fork+exec
       this->stub.SubmitTask(t, status);
     }
 
+    // FIXME: Remove
     std::this_thread::sleep_for(std::chrono::seconds(2));
   }
 }

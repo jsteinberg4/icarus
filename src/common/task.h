@@ -15,12 +15,16 @@ enum class Status {
 class Task {
 public:
   Task() : obj_path(), input_path(), result_path(), status(Status::Idle){};
-  /**
-   * @brief Checks if the task has been initialized
-   *
-   * @return true if properly initialized, false otherwise
-   */
-  bool Valid() const;
+
+  int Size() const;
+  std::string GetObjPath() const noexcept;
+  std::string GetInputPath() const noexcept;
+  std::string GetOutPath() const noexcept;
+  Status GetStatus() const noexcept;
+  void SetObjPath(std::string path) noexcept;
+  void SetInputPath(std::string path) noexcept;
+  void SetOutPath(std::string path) noexcept;
+  void SetStatus(Status s) noexcept;
 
   /**
    * @brief Write this object as a bytestring
@@ -30,7 +34,7 @@ public:
    * contain object serialization.
    * @return n bytes written
    */
-  int Marshall(std::unique_ptr<char> buffer, int bufsize) const;
+  int Marshall(char *buffer, int bufsize) const;
 
   /**
    * @brief Initialize this object from a bytestring
@@ -38,7 +42,9 @@ public:
    * @param buffer bytestring of object data
    * @param bufsize length of the bytestring
    */
-  void Unmarshall(std::unique_ptr<char> buffer, int bufsize) const;
+  void Unmarshall(const char *buffer, int bufsize);
+
+  inline void update_str(std::string s2) { this->result_path = s2; }
 
 private:
   std::string obj_path;

@@ -1,18 +1,24 @@
 #pragma once
 
 #include <memory>
-#include <tuple>
+#include <utility>
 namespace common {
 namespace rpc {
 
 // Assume messages max of 1KB
-constexpr int REQUEST_BUF_MAX = 1024;
+constexpr int REQUEST_BUF_MAX = 2048;
 
 enum class RequestType {
-  Register = 1,
+  Invalid = -1,
+  Register = 1, // A node introducing itself to the master
   TaskUpdate,
 };
-enum class NodeType { Master, Worker, Client };
+enum class NodeType {
+  Invalid = -1, // Error value
+  Master = 0,   // Node is a MapReduce master
+  Worker = 1,   // Node is a MapReduce worker
+  Client = 2,   // Node is a user program
+};
 
 class Request {
   /// Format:
@@ -23,9 +29,16 @@ class Request {
   /// }
   ///
 public:
+  Request();
+  ~Request();
+
   void SetType(RequestType rt) noexcept;
   void SetSender(NodeType nt) noexcept;
   void SetData(std::unique_ptr<char> data, int size) noexcept;
+  RequestType GetType() const noexcept;
+  NodeType GetSender() const noexcept;
+  std::pair<const std::unique_ptr<char> &, const int &>
+  GetData() const noexcept;
 
   int Size() const noexcept;
 
@@ -45,7 +58,7 @@ public:
    * @param buffer bytestring of object data
    * @param bufsize length of the bytestring
    */
-  void Unmarshall(std::unique_ptr<char> buffer, int bufsize) const;
+  void Unmarshall(const char *buffer, int bufsize);
 
 private:
   RequestType type;

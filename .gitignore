@@ -39,3 +39,7 @@ bin/
 compile_commands.json
 .cache/
 venv/ 
+
+# Other
+.vscode/
+mount-point/
