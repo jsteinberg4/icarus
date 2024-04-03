@@ -137,7 +137,7 @@ public:
 
     // Remove and return the head
     std::unique_ptr<T> popped =
-        std::unique_ptr<T>(new T(std::move(this->queue.front())));
+        std::make_unique<T>(std::move(this->queue.front()));
     this->queue.pop();
     return popped;
   }

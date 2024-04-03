@@ -1,5 +1,6 @@
 #include "master_node.h"
 #include "common/tcp_socket.h"
+#include "master_stub.h"
 #include <iostream>
 #include <memory>
 #include <thread>
@@ -13,7 +14,7 @@ namespace master {
 // ---------------
 MasterNode::MasterNode() {
   this->client_active = false;
-  this->workers = DEFAULT_WORKER_POOL;
+  this->n_coordinators = DEFAULT_WORKER_POOL;
   this->task_size_default = DEFAULT_TASK_SIZE;
 }
 MasterNode::~MasterNode() {}
@@ -23,7 +24,7 @@ MasterNode::~MasterNode() {}
 // ---------------
 
 void MasterNode::SetScheduler(TaskScheduler ts) { this->scheduler = ts; }
-void MasterNode::SetWorkers(int n_workers) { this->workers = n_workers; }
+void MasterNode::SetWorkers(int n_workers) { this->n_coordinators = n_workers; }
 void MasterNode::SetDefaultTaskSize(int size) {
   this->task_size_default = size;
 }
@@ -45,10 +46,16 @@ void MasterNode::ServeRequests(int port) {
   // - T2-n workers: Pool of threads for worker comms
   /* std::thread main = std::thread{&MasterNode::ConnectionListenerThread,
    * this}; */
-  std::thread client_handler;
-  std::vector<std::thread> worker_channels; // size: this->workers
+  std::vector<std::thread> coordinators; // size: this->workers
 
-  // TODO: Spawn other threads first
+  // Dedicated client thread for better latency
+  std::thread client_handler{&MasterNode::CoordinatorThread, this};
+
+  // Thread pool to handle worker coordination
+  for (auto i = 0; i < this->n_coordinators; i++) {
+    coordinators.emplace_back(&MasterNode::CoordinatorThread, this);
+  }
+
   this->ConnectionListenerThread();
 }
 
@@ -65,5 +72,18 @@ void MasterNode::ConnectionListenerThread() {
   }
 }
 
-void MasterNode::ClientConnHandler() {}
+void MasterNode::CoordinatorThread() {
+
+  while (true) {
+    std::unique_ptr<common::TcpSocket> sock;
+    std::unique_ptr<MasterStub> stub;
+
+    sock = this->incoming_sockets.pop();
+    stub->Init(std::move(sock));
+    stub->RecvRegistration();
+    // TODO: Do some work to register
+    stub->AckRegistration(/* TODO: */);
+    // TODO: Start handling requests
+  }
+}
 } // namespace master

@@ -42,11 +42,9 @@ common::Status WorkerNode::ExecTask(common::Task &t) {
     std::cerr << "WorkerNode::ExecTask: failed to fork task\n";
     return common::Status::Idle;
   } else if (pid == 0) { // Child
-    // TODO: Exec the task
-    // TODO: non-dummy task
+    // TODO: non-dummy task from request
     execl("/Users/jesse/Course-Repos/mapreduce/hello.sh", "hello.sh", NULL);
-    // Unreachable!
-    std::cerr << "WorkerNode::ExecTask: something wrong w/ exec\n";
+    // Should be unreachable; just an extra safeguard for my sanity
     exit(1);
   }
 

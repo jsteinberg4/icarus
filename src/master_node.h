@@ -1,8 +1,7 @@
 #pragma once
 
+#include "common/shared_queue.hpp"
 #include "common/tcp_socket.h"
-#include <memory>
-#include <queue>
 #include <string>
 namespace master {
 
@@ -68,18 +67,19 @@ private:
   bool client_active;
 
   TaskScheduler scheduler;
-  int workers; // TODO: better name. this is num threads talking to workers.
+  int n_coordinators; // num threads talking to workers
   int task_size_default;
   std::string fs_root;
   common::TcpSocket server;
-  std::queue<common::TcpSocket> incoming_sockets;
+  common::shared_queue<common::TcpSocket> incoming_sockets;
 
   // TODO: Client connection data structs
   // TODO: Worker connection data structs
 
   // Thread to accept new clients. Could be main thread.
   void ConnectionListenerThread();
+
   // Thread to comm w/ client. Should only have one.
-  void ClientConnHandler();
+  void CoordinatorThread();
 };
 } // namespace master
