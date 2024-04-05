@@ -105,6 +105,18 @@ void MasterNode::CoordinatorThread(std::unique_ptr<common::TcpSocket> sock) {
 
   while (true) {
     // TODO: Start handling requests
+    /* common::rpc::Request req = stub->RecvRequest(); */
+    common::rpc::Request req;
+    /* stub->RecvRequest(req); */
+    switch (req.GetType()) {
+    case common::rpc::RequestType::Register:
+      break;
+    case common::rpc::RequestType::TaskUpdate:
+      break;
+    case common::rpc::RequestType::Invalid:
+    default:
+      break;
+    }
   }
 }
 } // namespace master

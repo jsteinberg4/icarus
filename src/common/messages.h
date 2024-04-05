@@ -23,6 +23,7 @@ enum class NodeType {
 class Request {
   /// Format:
   /// {
+  ///   request size,
   ///   request type,
   ///   sender type,
   ///   request payload
@@ -30,6 +31,7 @@ class Request {
   ///
 public:
   Request();
+  Request(const Request &other);
   ~Request();
 
   void SetType(RequestType rt) noexcept;

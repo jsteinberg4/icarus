@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <iostream>
+#include <sstream>
 #include <stdio.h>
 #include <unistd.h>
 
@@ -50,7 +51,10 @@ int Socket::Recv(char *buffer, int size, int flags) {
   int bytes_read = 0;
   int offset = 0;
   while (size > 0) {
-    std::cout << "Socket::Recv: reading bytes...\n";
+    std::stringstream s;
+    s << "Socket::Recv: reading bytes (" << bytes_read << "B read, " << size
+      << "B remain)\n";
+    std::cout << s.str();
     bytes_read = recv(this->fd_, buffer + offset, size, flags);
     if (bytes_read <= 0) {
       /*

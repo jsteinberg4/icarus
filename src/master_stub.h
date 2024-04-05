@@ -42,11 +42,6 @@ public:
   // Worker coordination
   // -------------------
 
-  /*
-   * Accepts an incoming request
-   */
-  void RecvRequest();
-
   /**
    * Tell worker to complete a task
    *
@@ -56,6 +51,24 @@ public:
   void AssignTask(common::Task &t /* TODO: what else? */);
 
 private:
+  /*
+   * Accepts an incoming request
+   *
+   * Receives a request and unmarshalls it into req
+   */
+  int RecvRequest(common::rpc::Request &req) const noexcept;
+
+  /**
+   * @brief Send an RPC request
+   *
+   * @param type request type identifier
+   * @param data request payload
+   * @param data_len length of data in bytes
+   * @return bytes written (same as send(2) syscall)
+   */
+  int SendRequest(common::rpc::RequestType type, std::unique_ptr<char> data,
+                  int data_len) const noexcept;
+
   std::unique_ptr<common::TcpSocket> socket;
 };
 } // namespace master

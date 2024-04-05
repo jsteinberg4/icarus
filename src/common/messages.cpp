@@ -10,6 +10,15 @@ namespace rpc {
 Request::Request()
     : type(RequestType::Invalid), sender(NodeType::Invalid), data(),
       data_len(0) {}
+Request::Request(const Request &other) {
+  this->type = other.type;
+  this->sender = other.sender;
+  this->data_len = other.data_len;
+
+  char *buf = new char[other.data_len];
+  memcpy(buf, other.data.get(), other.data_len);
+  this->data.reset(buf);
+}
 Request::~Request() {}
 
 void Request::SetType(RequestType rt) noexcept { this->type = rt; }
@@ -28,25 +37,26 @@ Request::GetData() const noexcept {
 }
 
 int Request::Size() const noexcept {
-  int size = sizeof(this->type) + sizeof(this->sender) +
-             sizeof(this->data_len) + data_len;
-  std::cout << "Request::Size: size=" << size << "\n";
-  return size;
+  return sizeof(this->type) + sizeof(this->sender) + sizeof(this->data_len) +
+         data_len;
 }
 
 int Request::Marshall(char *buffer, int bufsize) const {
   // Serialization Order:
-  // | Request type | Sender type | Len(data segment) | data |
+  // |request size | Request type | Sender type | Len(data segment) | data |
   std::cerr << "RequestMarshall: bufsize=" << bufsize
             << " this->size=" << this->Size() << "\n";
   assert(this->Size() <= bufsize);
   memset(buffer, 0, bufsize);
   int offset = 0;
+  int n_size = htonl(this->Size());
   int n_type = htonl(static_cast<int>(this->type));
   int n_sender = htonl(static_cast<int>(this->sender));
   int n_datalen = htonl(this->data_len);
 
-  memcpy(buffer, &n_type, sizeof(n_type));
+  memcpy(buffer, &n_size, sizeof(n_size));
+  offset += sizeof(n_size);
+  memcpy(buffer + offset, &n_type, sizeof(n_type));
   offset += sizeof(n_type);
   memcpy(buffer + offset, &n_sender, sizeof(n_sender));
   offset += sizeof(n_sender);
