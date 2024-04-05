@@ -55,6 +55,7 @@ common::rpc::NodeType MasterStub::RecvRegistration() noexcept {
 
 void MasterStub::AssignTask(common::Task &t /* TODO: what else? */) {
   std::cout << "MasterStub::AssignTask\n";
+  this->SendRequest(common::rpc::RequestType::TaskUpdate, 0, 0);
 }
 
 //------------------
@@ -62,31 +63,36 @@ void MasterStub::AssignTask(common::Task &t /* TODO: what else? */) {
 //------------------
 int MasterStub::RecvRequest(common::rpc::Request &req) const noexcept {
   std::cout << "MasterStub::RecvRequest\n";
-  std::vector<char> buf;
-  int size = 0;
+  std::vector<char> buf(req.HeaderSize());
   int b_read = 0;
 
   // Read the size header
-  b_read = this->socket->Recv((char *)&size, sizeof(size));
+  b_read = this->socket->Recv(buf.data(), req.HeaderSize());
   std::cout << "MasterStub::RecvRequest: header size=" +
-                   std::to_string(b_read) + "\n";
-  if (b_read != sizeof(size)) {
+                   std::to_string(b_read) +
+                   " expected=" + std::to_string(req.HeaderSize()) + "\n";
+  if (b_read != req.HeaderSize()) {
     std::cerr << "MasterStub::RecvRequest: size header too small\n";
     exit(1); // FIXME: Remove this. just a brief panic test
   }
 
   // Read packet
-  size = ntohl(size);
-  buf.reserve(size);
-  std::cout << "MasterStub::RecvRequest: header says packet size=" << size
-            << "\n";
-  if ((b_read = this->socket->Recv(buf.data(), size)) != size) {
+  std::cout << "recvrequest buf size=" << buf.size()
+            << " buf cap=" << buf.capacity() << "\n";
+  req.UnmarshallHeaders(buf.data(), b_read);
+  buf.clear();
+  buf.resize(req.DataSize());
+  std::cout << "MasterStub::RecvRequest: header says packet size="
+            << req.DataSize() << "\n";
+  /* if ((b_read = this->socket->Recv(buf.data(), size)) != size) { */
+  if ((b_read = this->socket->Recv(buf.data(), req.DataSize())) !=
+      req.DataSize()) {
     std::cerr << "MasterStub::RecvRequest: packet size incorrect\n";
     exit(1); // FIXME: Remove this. just a brief panic test
   }
-  req.Unmarshall(buf.data(), buf.size());
+  req.UnmarshallData(buf.data(), buf.size());
 
-  return size;
+  return req.Size();
 }
 
 int MasterStub::SendRequest(common::rpc::RequestType type,
@@ -97,7 +103,9 @@ int MasterStub::SendRequest(common::rpc::RequestType type,
 
   req.SetType(type);
   req.SetSender(common::rpc::NodeType::Master);
-  req.SetData(std::move(data), data_len);
+  if (data_len > 0) {
+    req.SetData(std::move(data), data_len);
+  }
 
   buf.reserve(req.Size());
   req.Marshall(buf.data(), buf.capacity());

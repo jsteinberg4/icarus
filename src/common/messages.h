@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <utility>
 namespace common {
 namespace rpc {
 
@@ -39,9 +38,10 @@ public:
   void SetData(std::unique_ptr<char> data, int size) noexcept;
   RequestType GetType() const noexcept;
   NodeType GetSender() const noexcept;
-  std::pair<const std::unique_ptr<char> &, const int &>
-  GetData() const noexcept;
+  const std::unique_ptr<char> &GetData() const noexcept;
 
+  int DataSize() const noexcept;
+  int HeaderSize() const noexcept;
   int Size() const noexcept;
 
   /**
@@ -55,12 +55,20 @@ public:
   int Marshall(char *buffer, int bufsize) const;
 
   /**
-   * @brief Initialize this object from a bytestring
+   * @brief Initialize this object's payload from bytestring
    *
    * @param buffer bytestring of object data
    * @param bufsize length of the bytestring
    */
-  void Unmarshall(const char *buffer, int bufsize);
+  void UnmarshallData(const char *buffer, int bufsize) noexcept;
+
+  /**
+   * @brief Initialize object's metadata from bytestring
+   *
+   * @param buffer bytestring of object data
+   * @param bufsize length of the bytestring
+   */
+  void UnmarshallHeaders(const char *buffer, int bufsize) noexcept;
 
 private:
   RequestType type;

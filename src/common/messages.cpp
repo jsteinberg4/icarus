@@ -3,13 +3,15 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
-#include <tuple>
 #include <utility>
+
 namespace common {
 namespace rpc {
+
 Request::Request()
     : type(RequestType::Invalid), sender(NodeType::Invalid), data(),
       data_len(0) {}
+
 Request::Request(const Request &other) {
   this->type = other.type;
   this->sender = other.sender;
@@ -30,32 +32,30 @@ void Request::SetData(std::unique_ptr<char> data, int size) noexcept {
 RequestType Request::GetType() const noexcept { return this->type; }
 NodeType Request::GetSender() const noexcept { return this->sender; }
 
-std::pair<const std::unique_ptr<char> &, const int &>
-Request::GetData() const noexcept {
-  return std::tie<const std::unique_ptr<char> &, const int &>(this->data,
-                                                              this->data_len);
+const std::unique_ptr<char> &Request::GetData() const noexcept {
+  return const_cast<std::unique_ptr<char> &>(this->data);
 }
 
+int Request::HeaderSize() const noexcept {
+  return sizeof(this->type) + sizeof(this->sender) + sizeof(this->data_len);
+}
+int Request::DataSize() const noexcept { return this->data_len; }
 int Request::Size() const noexcept {
-  return sizeof(this->type) + sizeof(this->sender) + sizeof(this->data_len) +
-         data_len;
+  return this->HeaderSize() + this->DataSize();
 }
 
 int Request::Marshall(char *buffer, int bufsize) const {
   // Serialization Order:
-  // |request size | Request type | Sender type | Len(data segment) | data |
+  // | Request type | Sender type | Len(data segment) | data |
   std::cerr << "RequestMarshall: bufsize=" << bufsize
             << " this->size=" << this->Size() << "\n";
   assert(this->Size() <= bufsize);
   memset(buffer, 0, bufsize);
   int offset = 0;
-  int n_size = htonl(this->Size());
   int n_type = htonl(static_cast<int>(this->type));
   int n_sender = htonl(static_cast<int>(this->sender));
   int n_datalen = htonl(this->data_len);
 
-  memcpy(buffer, &n_size, sizeof(n_size));
-  offset += sizeof(n_size);
   memcpy(buffer + offset, &n_type, sizeof(n_type));
   offset += sizeof(n_type);
   memcpy(buffer + offset, &n_sender, sizeof(n_sender));
@@ -63,18 +63,17 @@ int Request::Marshall(char *buffer, int bufsize) const {
   memcpy(buffer + offset, &n_datalen, sizeof(n_datalen));
   offset += sizeof(n_datalen);
   memcpy(buffer + offset, this->data.get(), n_datalen);
-  offset += n_datalen;
+  offset += this->data_len;
 
   return offset;
 }
 
-void Request::Unmarshall(const char *buffer, int bufsize) {
-  std::cout << "Request::Unmarshall\n";
+void Request::UnmarshallHeaders(const char *buffer, int bufsize) noexcept {
+  std::cout << "Request::UnmarshallHeaders\n";
   int offset = 0;
   int n_type = -1;
   int n_sender = -1;
-  int n_datalen = -1, h_datalen = -1;
-  char *data_buf;
+  int n_datalen = -1;
 
   // Load serialization
   memcpy(&n_type, buffer, sizeof(n_type));
@@ -84,17 +83,23 @@ void Request::Unmarshall(const char *buffer, int bufsize) {
   memcpy(&n_datalen, buffer + offset, sizeof(n_datalen));
   offset += sizeof(n_datalen);
 
-  // Load data segment (dynamic length)
-  h_datalen = ntohl(n_datalen);
-  data_buf = new char[h_datalen];
-  memcpy(data_buf, buffer + offset, h_datalen);
-  offset += h_datalen;
-
   // Initialization
   this->type = static_cast<RequestType>(ntohl(n_type));
   this->sender = static_cast<NodeType>(ntohl(n_sender));
-  this->data_len = h_datalen;
-  this->data.reset(data_buf);
+  this->data_len = ntohl(n_datalen);
+}
+
+void Request::UnmarshallData(const char *buffer, int bufsize) noexcept {
+  std::cout << "Request::UnmarshallData\n";
+  // No data expected
+  if (this->data_len < 1) {
+    return;
+  }
+  assert(bufsize == this->data_len);
+
+  this->data.reset();
+  this->data = std::make_unique<char>(this->data_len);
+  memcpy(this->data.get(), buffer, this->data_len);
 }
 
 } // namespace rpc

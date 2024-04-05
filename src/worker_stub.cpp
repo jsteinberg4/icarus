@@ -10,32 +10,20 @@ namespace worker {
 
 bool WorkerStub::Register(std::string ip, int port) {
   common::rpc::Request id;
-  char buf[common::rpc::REQUEST_BUF_MAX];
-  int msg_size = 0;
-  std::string master_name = ip + ":" + std::to_string(port);
 
   if (!this->socket.Connect(ip, port)) {
-    std::cerr << "WorkerStub::Register: Unable to connect to master: " +
-                     master_name + "\n";
+    std::cerr << "WorkerStub::Register: Unable to connect to master: " + ip +
+                     ":" + std::to_string(port) + "\n";
     return false;
   }
 
-  id.SetType(common::rpc::RequestType::Register);
-  id.SetSender(common::rpc::NodeType::Worker);
-  // TODO: data for worker registration
+  // TODO: data for worker registration?
+  auto sent = this->SendRequest(common::rpc::RequestType::Register, nullptr, 0);
 
-  msg_size = id.Marshall(buf, common::rpc::REQUEST_BUF_MAX);
-  int written = 0;
-  if (!(written = this->socket.Send(buf, msg_size))) {
-    std::cerr << "WorkerStub::Register: Failed to send registration message to "
-                 "master: " +
-                     master_name + "\n";
-    return false;
-  }
-  std::cout << "WorkerStub::Register msg_size=" << msg_size
-            << " bytes written=" << written << "\n";
+  std::cout << "WorkerStub::Register msg_size=" << id.Size()
+            << " bytes written=" << sent << "\n";
 
-  return true;
+  return sent > 0;
 }
 
 // TODO: Reimplement
@@ -64,14 +52,13 @@ common::Task WorkerStub::RequestTask() {
   }
 
   // TODO: Unmarshall Request and then task from resp_buf
-  resp.Unmarshall(resp_buf, common::rpc::REQUEST_BUF_MAX);
-  auto body = resp.GetData();
+  /* resp.Unmarshall(resp_buf, common::rpc::REQUEST_BUF_MAX); */
 
   // Bad response
   if (resp.GetType() != common::rpc::RequestType::TaskUpdate) {
     return common::Task{};
   }
-  new_task.Unmarshall(body.first.get(), body.second);
+  new_task.Unmarshall(resp.GetData().get(), resp.DataSize());
 
   return new_task;
 }
@@ -88,41 +75,58 @@ void WorkerStub::SubmitTask(common::Task &t,
 //------------------
 int WorkerStub::RecvRequest(common::rpc::Request &req) noexcept {
   std::cout << "WorkerStub::RecvRequest\n";
-  std::vector<char> buf;
-  int size = 0;
+  std::vector<char> buf(req.HeaderSize());
+  /* int size = 0; */
   int b_read = 0;
 
   // Read the size header
-  if (this->socket.Recv((char *)&size, sizeof(size)) != sizeof(size)) {
+  /* if (this->socket.Recv((char *)&size, sizeof(size)) != sizeof(size)) { */
+  if ((b_read = this->socket.Recv(buf.data(), req.HeaderSize())) !=
+      req.HeaderSize()) {
     std::cerr << "WorkerStub::RecvRequest: size header too small\n";
     exit(1); // FIXME: Remove this. just a brief panic test
   }
 
   // Read packet
-  size = ntohl(size);
-  buf.reserve(size);
-  if ((b_read = this->socket.Recv(buf.data(), size)) != size) {
+  /* size = ntohl(size); */
+  /* buf.reserve(size); */
+  req.UnmarshallHeaders(buf.data(), b_read);
+  buf.clear();
+  buf.reserve(req.DataSize());
+  /* if ((b_read = this->socket.Recv(buf.data(), size)) != size) { */
+  if ((b_read = this->socket.Recv(buf.data(), req.DataSize())) !=
+      req.DataSize()) {
     std::cerr << "WorkerStub::RecvRequest: packet size incorrect\n";
     exit(1); // FIXME: Remove this. just a brief panic test
   }
-  req.Unmarshall(buf.data(), buf.size());
+  req.UnmarshallData(buf.data(), buf.size());
 
-  return size;
+  return req.Size();
 }
 
 int WorkerStub::SendRequest(common::rpc::RequestType type,
                             std::unique_ptr<char> data, int data_len) noexcept {
+  // FIXME: Refactor to use smart pointers or other managed dynamic obj
   common::rpc::Request req;
-  std::vector<char> buf;
+  /* std::vector<char> buf; */
+  /* std::unique_ptr<char> buf; */
+  char *buf;
 
   req.SetType(type);
-  req.SetSender(common::rpc::NodeType::Master);
-  req.SetData(std::move(data), data_len);
+  req.SetSender(common::rpc::NodeType::Worker);
 
-  buf.reserve(req.Size());
-  req.Marshall(buf.data(), buf.capacity());
+  if (data_len > 0) {
+    req.SetData(std::move(data), data_len);
+  }
 
-  return this->socket.Send(buf.data(), buf.size());
+  /* buf.reserve(req.Size()); */
+  /* buf = std::make_unique<char>(req.Size()); */
+  buf = new char[req.Size()];
+  req.Marshall(buf, req.Size());
+
+  auto written = this->socket.Send(buf, req.Size());
+  delete buf; // free buffer
+  return written;
 }
 
 } // namespace worker
