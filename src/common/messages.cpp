@@ -8,7 +8,7 @@
 namespace common {
 namespace rpc {
 
-Request::Request()
+Request::Request() noexcept
     : type(RequestType::Invalid), sender(NodeType::Invalid), data(),
       data_len(0) {}
 
@@ -36,9 +36,6 @@ const std::unique_ptr<char> &Request::GetData() const noexcept {
   return const_cast<std::unique_ptr<char> &>(this->data);
 }
 
-int Request::HeaderSize() const noexcept {
-  return sizeof(this->type) + sizeof(this->sender) + sizeof(this->data_len);
-}
 int Request::DataSize() const noexcept { return this->data_len; }
 int Request::Size() const noexcept {
   return this->HeaderSize() + this->DataSize();
@@ -51,6 +48,7 @@ int Request::Marshall(char *buffer, int bufsize) const {
             << " this->size=" << this->Size() << "\n";
   assert(this->Size() <= bufsize);
   memset(buffer, 0, bufsize);
+
   int offset = 0;
   int n_type = htonl(static_cast<int>(this->type));
   int n_sender = htonl(static_cast<int>(this->sender));

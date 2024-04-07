@@ -139,6 +139,19 @@ public:
     // (implicit) release lock!
   }
 
+  /**
+   * @brief Pop all elements off the queue
+   */
+  inline void clear() {
+    std::unique_lock<std::mutex> lk{this->mtx};
+
+    // Don't use this->pop! That will re-acquire the lock and create deadlock.
+    // This also blocks other threads from pushing/popping during a clear.
+    while (!this->queue.empty()) {
+      this->queue.pop();
+    }
+  }
+
 protected:
   /**
    * @brief Provide access to the lock protecting this queue

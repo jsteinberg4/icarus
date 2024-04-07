@@ -1,21 +1,17 @@
 #pragma once
 
-#include "common/shared_queue.hpp"
 #include "common/tcp_socket.h"
+#include "master_scheduler.h"
+#include "master_stub.h"
 #include <atomic>
+#include <memory>
 #include <string>
 #include <thread>
 #include <vector>
+
 namespace master {
 
-constexpr int DEFAULT_WORKER_POOL = 16;
 constexpr int DEFAULT_TASK_SIZE = 16 << 20; // 16MB
-
-class TaskScheduler {
-private:
-  // TODO: List(?) of tasks
-  // TODO: Make thread safe
-};
 
 /**
  * @class MasterNode
@@ -24,23 +20,15 @@ private:
  */
 class MasterNode {
 public:
-  MasterNode();
-  ~MasterNode();
+  MasterNode() noexcept;
 
   /**
    * @brief Configure the task scheduling algorithm
+   * TODO: Add back if necessary
    *
    * @param ts task scheduler instance
    */
-  void SetScheduler(TaskScheduler ts);
-
-  /**
-   * TODO: Remove
-   * @brief Set the number of threads communicating with worker nodes
-   *
-   * @param n_workers [TODO:parameter]
-   */
-  /* void SetWorkers(int n_workers); */
+  /* void SetScheduler(TaskScheduler ts); */
 
   /**
    * @brief Default size to partition user's input file
@@ -71,7 +59,6 @@ private:
   std::atomic_bool client_active;
 
   TaskScheduler scheduler;
-  /* int n_coordinators; // num threads talking to workers */
   std::vector<std::thread> coordinators; // Threads talking to workers
   int task_size_default;
   std::string fs_root;
@@ -85,5 +72,9 @@ private:
 
   // Thread to comm w/ client. Should only have one.
   void CoordinatorThread(std::unique_ptr<common::TcpSocket> sock);
+  // Thread body to communicate w/ a worker
+  void WorkerCoordinatorThread(std::unique_ptr<MasterStub> stub);
+  void ClientCoordinatorThread(std::unique_ptr<MasterStub> stub);
+  // Thread body to communicate w/ a client
 };
 } // namespace master

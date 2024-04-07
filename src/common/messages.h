@@ -19,6 +19,19 @@ enum class NodeType {
   Client = 2,   // Node is a user program
 };
 
+/**
+ * @class Request
+ * @brief An RPC request. Can be marshalled to a bytestream.
+ *
+ * Example:
+ *
+ * Request r;
+ * char buffer[req.HeaderSize() + 0]; // '0' would be payload size
+ * r.SetType(RequestType::Register);
+ * r.SetSender(NodeType::Worker);
+ * r.Marshall(buffer, len(buffer))
+ *
+ */
 class Request {
   /// Format:
   /// {
@@ -29,20 +42,89 @@ class Request {
   /// }
   ///
 public:
-  Request();
+  /**
+   * @brief Default constructor
+   */
+  Request() noexcept;
+
+  /**
+   * @brief Copy constructor.
+   *
+   * Creates a new copy of other->data, without freeing other's payload.
+   *
+   * @param other request to copy from
+   */
   Request(const Request &other);
+
+  /**
+   * @brief dtor
+   */
   ~Request();
 
+  /**
+   * @brief Update the request type id
+   *
+   * @param rt type of RPC request
+   */
   void SetType(RequestType rt) noexcept;
+
+  /**
+   * @brief Update the sender type
+   *
+   * @param nt type of node sending request
+   */
   void SetSender(NodeType nt) noexcept;
+
+  /**
+   * @brief Update the request payload
+   *
+   * @param data payload data
+   * @param size payload size in bytes
+   */
   void SetData(std::unique_ptr<char> data, int size) noexcept;
+
+  /**
+   * @brief RPC request type
+   *
+   * @return current set request type
+   */
   RequestType GetType() const noexcept;
+
+  /**
+   * @brief Sending node type
+   *
+   * @return currently set node type
+   */
   NodeType GetSender() const noexcept;
+
+  /**
+   * @brief Get an immutable reference to the request payload
+   */
   const std::unique_ptr<char> &GetData() const noexcept;
 
-  int DataSize() const noexcept;
-  int HeaderSize() const noexcept;
+  /**
+   * @brief Total size
+   *
+   * Equal to this->HeaderSize() + this->DataSize()
+   * @return full marshalled packet size in bytes
+   */
   int Size() const noexcept;
+
+  /**
+   * @brief Get the payload size
+   *
+   * @return payload size in bytes
+   */
+  int DataSize() const noexcept;
+
+  /**
+   * @brief Size of the headers. Always fixed.
+   *
+   * @return header size in bytes
+   */
+  constexpr int HeaderSize() const noexcept {
+    return sizeof(this->type) + sizeof(this->sender) + sizeof(this->data_len);
+  }
 
   /**
    * @brief Write this object as a bytestring
@@ -71,10 +153,10 @@ public:
   void UnmarshallHeaders(const char *buffer, int bufsize) noexcept;
 
 private:
-  RequestType type;
-  NodeType sender;
-  std::unique_ptr<char> data;
-  int data_len;
+  RequestType type;           // Request type identifier
+  NodeType sender;            // Sending node's type
+  std::unique_ptr<char> data; // Request payload
+  int data_len;               // Size of request payload in bytes
 };
 
 } // namespace rpc

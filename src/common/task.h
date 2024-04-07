@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <string>
 namespace common {
 
@@ -44,12 +43,26 @@ public:
    */
   void Unmarshall(const char *buffer, int bufsize);
 
-  inline void update_str(std::string s2) { this->result_path = s2; }
+  /**
+   * @brief Compare task equality
+   *
+   * Two tasks are equal iff:
+   * - They describe the same executable
+   * - They describe the same input file
+   *
+   * @param other
+   * @return true IFF the tasks are equal
+   */
+  bool operator==(const Task &other) {
+    return (this->obj_path == other.obj_path) &&
+           (this->input_path == other.input_path);
+  }
 
 private:
   std::string obj_path;
   std::string input_path;
-  std::string result_path;
+  std::string result_path; // TODO: Tasks likely to have *several* output
+                           // paths... Make a filepath stem?
   Status status;
 };
 

@@ -36,11 +36,14 @@ public:
   // -------------------
   // Client coordination
   // -------------------
-  // void ClientAccept(/* TODO: */);
+  // TODO: Set client configuration
+  void ClientAcceptConfig();
 
   // -------------------
   // Worker coordination
   // -------------------
+  common::Task WorkerTaskUpdate() noexcept;
+  bool WorkerIsAlive() noexcept;
 
   /**
    * Tell worker to complete a task
@@ -50,7 +53,9 @@ public:
    */
   void AssignTask(common::Task &t /* TODO: what else? */);
 
-private:
+protected:
+  std::unique_ptr<common::TcpSocket> socket;
+
   /*
    * Accepts an incoming request
    *
@@ -68,7 +73,5 @@ private:
    */
   int SendRequest(common::rpc::RequestType type, std::unique_ptr<char> data,
                   int data_len) const noexcept;
-
-  std::unique_ptr<common::TcpSocket> socket;
 };
 } // namespace master
