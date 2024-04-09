@@ -66,7 +66,7 @@ void Task::Unmarshall(const char *buffer, int bufsize) {
   int n_status;
 
   // Object path
-  std::cout << "Task::Unmarshall\n";
+  std::cout << "Task::Unmarshall obj path size\n";
   memcpy(&n_obj_path_size, buffer, sizeof(n_obj_path_size));
   offset += sizeof(n_obj_path_size);
   obj_path_size = ntohl(n_obj_path_size);
@@ -78,6 +78,7 @@ void Task::Unmarshall(const char *buffer, int bufsize) {
   offset += obj_path_size;
 
   // Input path
+  std::cout << "Task::Unmarshall input path size\n";
   memcpy(&n_input_path_size, buffer + offset, sizeof(n_input_path_size));
   offset += sizeof(n_input_path_size);
   input_path_size = ntohl(n_input_path_size);
@@ -89,6 +90,7 @@ void Task::Unmarshall(const char *buffer, int bufsize) {
   this->input_path = std::string(buf.get());
 
   // Result path
+  std::cout << "Task::Unmarshall result path size\n";
   memcpy(&n_result_path_size, buffer + offset, sizeof(n_result_path_size));
   offset += sizeof(n_result_path_size);
   result_path_size = ntohl(n_result_path_size);
@@ -100,6 +102,7 @@ void Task::Unmarshall(const char *buffer, int bufsize) {
   this->result_path = std::string(buf.get());
 
   // Status
+  std::cout << "Task::Unmarshall status\n";
   memcpy(&n_status, buffer + offset, sizeof(n_status));
   this->status = (Status)ntohl(n_status);
 }
