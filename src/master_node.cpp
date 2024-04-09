@@ -32,7 +32,7 @@ void MasterNode::ServeRequests(int port) {
   }
 
   // FIXME: Remove once clients exist
-  this->scheduler.Init("", 0, 0, 0);
+  this->scheduler.Init(this->fs_root, "", 0, 0, 0);
   this->scheduler.MarkReady();
 
   // TODO: Lock? probably not needed as long as only this thread uses
