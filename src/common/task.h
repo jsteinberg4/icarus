@@ -5,6 +5,7 @@ namespace common {
 
 /* The status of a Map or Reduce task. */
 enum class Status {
+  Invalid = -1, // Invalid: Used as an error flag
   Idle = 0, // Idle: The task is not currently running/scheduled. Can also be
             // used to mark tasks as failed
   InProgress = 1, // InProgress: The task is currently scheduled to run
@@ -12,8 +13,16 @@ enum class Status {
 };
 
 class Task {
+  // TODO: Make input and output paths List[str]. Map tasks will only use one
+  // input. Reduce will be many in, many out
+  // NOTE: encoding that will suck. Devise scheme to keep single string.
 public:
-  Task() : obj_path(), input_path(), result_path(), status(Status::Idle){};
+  inline Task() : Task("", "", "", Status::Invalid){};
+
+  inline Task(std::string obj_path, std::string input_path,
+              std::string result_path, Status status = Status::Invalid)
+      : obj_path(std::move(obj_path)), input_path(std::move(input_path)),
+        result_path(std::move(result_path)), status(status) {}
 
   int Size() const;
   std::string GetObjPath() const noexcept;

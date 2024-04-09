@@ -29,63 +29,42 @@ bool WorkerStub::Register(std::string ip, int port) {
 common::Task WorkerStub::RequestTask() {
   common::rpc::Request resp;
   common::Task t{};
+  t.SetStatus(common::Status::Idle);
+  auto buf = std::make_unique<char>(t.Size());
+  t.Marshall(buf.get(), t.Size());
 
-  // TODO: setup the payload
-  this->SendRequest(common::rpc::RequestType::TaskUpdate, nullptr, 0);
+  // Retransmit until sent
+  while (this->SendRequest(common::rpc::RequestType::TaskUpdate, std::move(buf),
+                           t.Size()) < t.Size())
+    ;
+
+  // Clear & retry
+  std::cout << "Waiting for new task...\n";
+  while (this->RecvRequest(resp) < 1) {
+    resp.Reset();
+  }
 
   // Invalid task on error
-  this->RecvRequest(resp); // Error handling
   if (resp.GetType() != common::rpc::RequestType::TaskUpdate) {
     return common::Task{};
   }
 
-  // TODO: Unmarshall task from response
-  // t.Unmarshall(/* TODO */, int bufsize);
+  t.Unmarshall(resp.GetData().get(), resp.DataSize());
+  std::cout << "Got a new task!\n";
   return t;
 }
 
-// TODO: Reimplement
-// common::Task WorkerStub::RequestTask() {
-//   common::rpc::Request req;
-//   common::rpc::Request resp;
-//   common::Task t;
-//   common::Task new_task;
-//   char task_buf[common::rpc::REQUEST_BUF_MAX];
-//   char req_buf[common::rpc::REQUEST_BUF_MAX];
-//   char resp_buf[common::rpc::REQUEST_BUF_MAX];
-//
-//   req.SetType(common::rpc::RequestType::TaskUpdate);
-//   req.SetSender(common::rpc::NodeType::Worker);
-//   /* req.SetData(std::unique_ptr<char> data, int size) */
-//   // TODO: Serialize the task
-//
-//   // Silent failure -- worker will resubmit request
-//   if (!this->socket.Send(req_buf, 0 /* TODO: */)) {
-//     return common::Task{};
-//   }
-//
-//   // Silent failure -- worker will resubmit request
-//   if (!this->socket.Recv(resp_buf, common::rpc::REQUEST_BUF_MAX)) {
-//     return common::Task{};
-//   }
-//
-//   // TODO: Unmarshall Request and then task from resp_buf
-//   /* resp.Unmarshall(resp_buf, common::rpc::REQUEST_BUF_MAX); */
-//
-//   // Bad response
-//   if (resp.GetType() != common::rpc::RequestType::TaskUpdate) {
-//     return common::Task{};
-//   }
-//   new_task.Unmarshall(resp.GetData().get(), resp.DataSize());
-//
-//   return new_task;
-// }
-
-void WorkerStub::SubmitTask(common::Task &t,
-                            common::Status status /* TODO: Task status */) {
+void WorkerStub::SubmitTask(common::Task &t, common::Status status) {
   common::rpc::Request req;
-  char buf[common::rpc::REQUEST_BUF_MAX];
-  // TODO:
+  t.SetStatus(status); // TODO: move this logic into the worker?
+
+  auto buf = std::make_unique<char>(t.Size());
+  t.Marshall(buf.get(), t.Size());
+
+  // Retransmit until sent
+  while (this->SendRequest(common::rpc::RequestType::TaskUpdate, std::move(buf),
+                           t.Size()) < t.Size())
+    ;
 }
 
 //------------------
@@ -106,7 +85,7 @@ int WorkerStub::RecvRequest(common::rpc::Request &req) noexcept {
   // Read packet
   req.UnmarshallHeaders(buf.data(), b_read);
   buf.clear();
-  buf.reserve(req.DataSize());
+  buf.resize(req.DataSize());
   if ((b_read = this->socket.Recv(buf.data(), req.DataSize())) !=
       req.DataSize()) {
     // TODO: Set request as invalid and return
@@ -132,7 +111,10 @@ int WorkerStub::SendRequest(common::rpc::RequestType type,
   auto buf = std::vector<char>(req.Size());
   req.Marshall(buf.data(), req.Size());
 
-  return this->socket.Send(buf.data(), req.Size());
+  std::cout << "WorkerStub::SendRequest: bytes to send=" << req.Size() << "\n";
+  auto written = this->socket.Send(buf.data(), req.Size());
+  std::cout << "WorkerStub::SendRequest: bytes written=" << written << "\n";
+  return written;
 }
 
 } // namespace worker

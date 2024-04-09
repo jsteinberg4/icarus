@@ -2,10 +2,21 @@
 #include "common/task.h"
 #include <chrono>
 #include <iostream>
+#include <string>
+#include <string_view>
 #include <sys/wait.h>
 #include <thread>
 #include <unistd.h>
+
 namespace worker {
+
+static std::string exe_name(std::string path_to_exe) {
+  /* std::find_end(path_to_exe.begin(), path_to_exe.end(), ForwardIterator2
+   * first2, ForwardIterator2 last2) */
+  /* std::string_view()std::find(path_to_exe.rbegin(), path_to_exe.rend(), "/");
+   */
+  return path_to_exe.substr(path_to_exe.rfind("/"));
+}
 
 //------------------
 // Public functions
@@ -25,6 +36,8 @@ void WorkerNode::Run(std::string master_ip, int port) {
     if (t.GetStatus() == common::Status::InProgress) {
       auto status = this->ExecTask(t); // Handle fork+exec
       this->stub.SubmitTask(t, status);
+    } else {
+      std::cout << "Received task that is not in progress\n";
     }
 
     // FIXME: Remove
@@ -43,8 +56,13 @@ common::Status WorkerNode::ExecTask(common::Task &t) {
     std::cerr << "WorkerNode::ExecTask: failed to fork task\n";
     return common::Status::Idle;
   } else if (pid == 0) { // Child
-    // TODO: non-dummy task from request
-    execl("/Users/jesse/Course-Repos/mapreduce/hello.sh", "hello.sh", NULL);
+    // TODO: Arguments/environment vars to pass
+    std::string exe = exe_name(t.GetObjPath());
+    std::cout << "Object path was: " << exe << ", exe name=" << exe << "\n";
+    execl(t.GetObjPath().c_str(), exe.c_str(), NULL);
+
+    // Dummy example
+    // execl("/Users/jesse/Course-Repos/mapreduce/hello.sh", "hello.sh", NULL);
     // Should be unreachable; just an extra safeguard for my sanity
     exit(1);
   }

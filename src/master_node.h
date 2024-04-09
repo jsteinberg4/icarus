@@ -67,9 +67,6 @@ private:
   // TODO: Client connection data structs
   // TODO: Worker connection data structs
 
-  // Thread to accept new clients. Could be main thread.
-  void ConnectionListenerThread();
-
   // Thread to comm w/ client. Should only have one.
   void CoordinatorThread(std::unique_ptr<common::TcpSocket> sock);
   // Thread body to communicate w/ a worker

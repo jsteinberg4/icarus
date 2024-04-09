@@ -60,9 +60,10 @@ int Request::Marshall(char *buffer, int bufsize) const {
   offset += sizeof(n_sender);
   memcpy(buffer + offset, &n_datalen, sizeof(n_datalen));
   offset += sizeof(n_datalen);
-  memcpy(buffer + offset, this->data.get(), n_datalen);
+  memcpy(buffer + offset, this->data.get(), this->data_len);
   offset += this->data_len;
 
+  std::cout << "Request::Marshall: offset=" << offset << "\n";
   return offset;
 }
 
@@ -93,7 +94,7 @@ void Request::UnmarshallData(const char *buffer, int bufsize) noexcept {
   if (this->data_len < 1) {
     return;
   }
-  assert(bufsize == this->data_len);
+  assert(bufsize <= this->data_len);
 
   this->data.reset();
   this->data = std::make_unique<char>(this->data_len);

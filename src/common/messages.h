@@ -152,6 +152,13 @@ public:
    */
   void UnmarshallHeaders(const char *buffer, int bufsize) noexcept;
 
+  inline void Reset() noexcept {
+    this->type = RequestType::Invalid;
+    this->sender = NodeType::Invalid;
+    this->data.reset();
+    this->data_len = 0;
+  }
+
 private:
   RequestType type;           // Request type identifier
   NodeType sender;            // Sending node's type

@@ -31,12 +31,35 @@ common::rpc::NodeType MasterStub::RecvRegistration() noexcept {
   return common::rpc::NodeType::Invalid;
 }
 
-void MasterStub::AssignTask(common::Task &t /* TODO: what else? */) {
+void MasterStub::AssignTask(common::Task &t) {
   std::cout << "MasterStub::AssignTask\n";
-  this->SendRequest(common::rpc::RequestType::TaskUpdate, 0, 0);
+  auto buf = std::make_unique<char>(t.Size());
+  t.Marshall(buf.get(), t.Size());
+
+  // Retransmit until sent
+  while (this->SendRequest(common::rpc::RequestType::TaskUpdate, std::move(buf),
+                           t.Size()) < t.Size())
+    ;
 }
 
-common::Task MasterStub::WorkerTaskUpdate() noexcept {}
+common::Task MasterStub::WorkerTaskUpdate() noexcept {
+  std::cout << "MasterStub::WorkerTaskUpdate\n";
+  common::rpc::Request req;
+  common::Task t;
+
+  // Clear & retry
+  while (this->RecvRequest(req) < 1) {
+    req.Reset();
+  }
+
+  // Invalid update
+  if (req.GetType() != common::rpc::RequestType::TaskUpdate) {
+    return t;
+  }
+
+  t.Unmarshall(req.GetData().get(), req.DataSize());
+  return t;
+}
 
 //------------------
 // Protected functions
@@ -78,7 +101,6 @@ int MasterStub::SendRequest(common::rpc::RequestType type,
                             std::unique_ptr<char> data,
                             int data_len) const noexcept {
   common::rpc::Request req;
-  std::vector<char> buf;
 
   req.SetType(type);
   req.SetSender(common::rpc::NodeType::Master);
@@ -86,7 +108,7 @@ int MasterStub::SendRequest(common::rpc::RequestType type,
     req.SetData(std::move(data), data_len);
   }
 
-  buf.reserve(req.Size());
+  auto buf = std::vector<char>(req.Size());
   req.Marshall(buf.data(), buf.capacity());
 
   return this->socket->Send(buf.data(), buf.size());

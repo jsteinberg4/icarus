@@ -59,6 +59,13 @@ int main(int argc, char *argv[]) {
   n_workers = atoi(argv[3]);
   coordinator::signals_init();
 
+  // FIXME: Single proc for debugging
+  if (n_workers == 0) {
+    worker::WorkerNode child;
+    child.Run(ip, port);
+    return 0;
+  }
+
   // Maintain a pool of workers. Cleanup on SIGINT
   while (!coordinator::quit) {
     int estatus = 0;
@@ -85,11 +92,11 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    if ((dead = waitpid(-1, &estatus, WNOHANG)) > 0) {
-      workers.erase(std::remove(workers.begin(), workers.end(), dead),
-                    workers.end());
-      std::cout << "Removed dead(?) process id=" << dead << "\n";
-    }
+    // if ((dead = waitpid(-1, &estatus, WNOHANG)) > 0) {
+    //   workers.erase(std::remove(workers.begin(), workers.end(), dead),
+    //                 workers.end());
+    //   std::cout << "Removed dead(?) process id=" << dead << "\n";
+    // }
     std::this_thread::sleep_for(std::chrono::seconds(rand() % 3));
   }
 

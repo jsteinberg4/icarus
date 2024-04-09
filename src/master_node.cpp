@@ -24,32 +24,16 @@ void MasterNode::SetDefaultTaskSize(int size) {
 }
 
 void MasterNode::ServeRequests(int port) {
+  std::unique_ptr<common::TcpSocket> in_sock;
+
   if (!this->server.Bind(port)) {
     std::cerr << "Unable to bind to port=" << port << std::endl;
     return;
   }
-  // TODO: Initialize a few threads
-  // - T0: Listen for incoming clients (user clients or workers). Assign a
-  //       thread to handle each.
-  //       DONE: Use current thread
-  // - T1: Client connection handler
-  // - T2-n workers: Pool of threads for worker comms
-  /* std::thread main = std::thread{&MasterNode::ConnectionListenerThread,
-   * this}; */
-  std::vector<std::thread> coordinators; // size: this->workers
 
-  // Dedicated client thread for better latency
-  // TODO: change function to handle client specifically
-  /* std::thread client_handler{&MasterNode::CoordinatorThread, this}; */
-
-  this->ConnectionListenerThread();
-}
-
-// ---------------
-// Private functions
-// ---------------
-void MasterNode::ConnectionListenerThread() {
-  std::unique_ptr<common::TcpSocket> in_sock;
+  // FIXME: Remove once clients exist
+  this->scheduler.Init("", 0, 0, 0);
+  this->scheduler.MarkReady();
 
   // TODO: Lock? probably not needed as long as only this thread uses
   while ((in_sock = this->server.Accept())) {
@@ -58,6 +42,10 @@ void MasterNode::ConnectionListenerThread() {
                                     std::move(in_sock));
   }
 }
+
+// ---------------
+// Private functions
+// ---------------
 
 void MasterNode::CoordinatorThread(std::unique_ptr<common::TcpSocket> sock) {
   std::cout << "CoordinatorThread start\n";
@@ -143,6 +131,11 @@ void MasterNode::WorkerCoordinatorThread(std::unique_ptr<MasterStub> stub) {
       // 2) Assigned task has failed
       // TODO: Use scheduler to get a new task
       /* stub->AssignTask(next); */
+      // FIXME: Assumes case 1
+      next = this->scheduler.GetTask();
+      std::cout << "Worker wants a task!\n";
+      stub->AssignTask(next);
+      active = next;
       break;
     case common::Status::InProgress:
       // TODO: Do nothing
@@ -151,6 +144,7 @@ void MasterNode::WorkerCoordinatorThread(std::unique_ptr<MasterStub> stub) {
       // TODO: Mark task complete; assign new task
       /* this->scheduler.UpdateTask(active, common::Status::Done); */
       /* stub->AssignTask(next); */
+      std::cout << "Worker finished the task!\n";
       break;
     default:
       // TODO: default case... do nothing?
