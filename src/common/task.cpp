@@ -66,10 +66,10 @@ void Task::Unmarshall(const char *buffer, int bufsize) {
   int n_status;
 
   // Object path
-  std::cout << "Task::Unmarshall obj path size\n";
   memcpy(&n_obj_path_size, buffer, sizeof(n_obj_path_size));
   offset += sizeof(n_obj_path_size);
   obj_path_size = ntohl(n_obj_path_size);
+  std::cout << "Task::Unmarshall obj path size=" << obj_path_size << "\n";
 
   /* buf = std::make_unique<char>(obj_path_size); */
   buf.reset(new char[obj_path_size]);
@@ -78,22 +78,29 @@ void Task::Unmarshall(const char *buffer, int bufsize) {
   offset += obj_path_size;
 
   // Input path
-  std::cout << "Task::Unmarshall input path size\n";
   memcpy(&n_input_path_size, buffer + offset, sizeof(n_input_path_size));
   offset += sizeof(n_input_path_size);
   input_path_size = ntohl(n_input_path_size);
+  std::cout << "Task::Unmarshall input path size=" << input_path_size << "\n";
 
   /* buf = std::make_unique<char>(input_path_size); */
-  buf.reset(new char[input_path_size]);
-  memcpy(buf.get(), buffer + offset, input_path_size);
+  // buf.reset(new char[input_path_size]);
+  // std::cout << "Task::Unmarshall input path done alloc\n";
+  // memcpy(buf.get(), buffer + offset, input_path_size);
+  // std::cout << "Task::Unmarshall input path memcpy\n";
+  // offset += input_path_size;
+  // this->input_path = std::string(buf.get());
+  char buf2[input_path_size];
+  memcpy(buf2, buffer + offset, input_path_size);
+  std::cout << "Task::Unmarshall input path memcpy\n";
   offset += input_path_size;
-  this->input_path = std::string(buf.get());
+  this->input_path = std::string(buf2);
 
   // Result path
-  std::cout << "Task::Unmarshall result path size\n";
   memcpy(&n_result_path_size, buffer + offset, sizeof(n_result_path_size));
   offset += sizeof(n_result_path_size);
   result_path_size = ntohl(n_result_path_size);
+  std::cout << "Task::Unmarshall result path size=" << result_path_size << "\n";
 
   /* buf = std::make_unique<char>(result_path_size); */
   buf.reset(new char[result_path_size]);
