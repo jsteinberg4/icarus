@@ -4,6 +4,7 @@
 #include <atomic>
 #include <deque>
 #include <mutex>
+#include <string>
 
 namespace master {
 
@@ -38,8 +39,8 @@ public:
    *
    * TODO: What error type??
    */
-  void Init(std::string input_file, int chunksize, int n_mappers,
-            int n_reducers);
+  void Init(std::string fsroot, std::string input_file, int chunksize,
+            int n_mappers, int n_reducers);
 
   void UpdateTask(const common::Task &t, common::Status old,
                   common::Status new_) noexcept;
@@ -53,6 +54,7 @@ private:
   std::atomic_bool ready; // Don't assign tasks if false. ready is true iff
                           // is_initialized is true.
   std::atomic<common::Status> status; // Overall job completion
+  std::string fs_root;                // Root path for all files
 
   // NOTE: Locking order. ONLY lock in this order. Unlock in reverse.
   // 1) map_tasks_lk

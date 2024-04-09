@@ -5,17 +5,18 @@
 
 namespace master {
 
-void TaskScheduler::Init(std::string input_file, int chunksize, int n_mappers,
-                         int n_reducers) {
+void TaskScheduler::Init(std::string fsroot, std::string input_file,
+                         int chunksize, int n_mappers, int n_reducers) {
   this->Reset();
   this->LockAll();
+  this->fs_root = fsroot;
 
   // TODO: partition the input file
   // TODO: Create a map task for each
   // TODO: Create n_reducers reduce tasks
 
   std::cout << "WARNING: Putting a dummy task (hello.sh) onto queue\n";
-  this->idle.emplace_front("/Users/jesse/Course-Repos/icarus/hello.sh", "", "",
+  this->idle.emplace_front(this->fs_root + "/hello.sh", "", "",
                            common::Status::Idle);
 
   this->is_initialized = true;
