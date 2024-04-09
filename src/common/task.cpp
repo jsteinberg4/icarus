@@ -1,10 +1,10 @@
 #include "task.h"
+#include <arpa/inet.h>
 #include <cassert>
 #include <cstring>
 #include <iostream>
 #include <memory>
 #include <string>
-#include <vector>
 namespace common {
 
 int Task::Size() const {

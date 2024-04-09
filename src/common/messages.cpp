@@ -1,4 +1,5 @@
 #include "messages.h"
+#include <arpa/inet.h>
 #include <cassert>
 #include <cstring>
 #include <iostream>
