@@ -66,11 +66,13 @@ void Task::Unmarshall(const char *buffer, int bufsize) {
   int n_status;
 
   // Object path
+  std::cout << "Task::Unmarshall\n";
   memcpy(&n_obj_path_size, buffer, sizeof(n_obj_path_size));
   offset += sizeof(n_obj_path_size);
   obj_path_size = ntohl(n_obj_path_size);
 
-  buf = std::make_unique<char>(obj_path_size);
+  /* buf = std::make_unique<char>(obj_path_size); */
+  buf.reset(new char[obj_path_size]);
   memcpy(buf.get(), buffer + offset, obj_path_size);
   this->obj_path = std::string(buf.get());
   offset += obj_path_size;
@@ -80,7 +82,8 @@ void Task::Unmarshall(const char *buffer, int bufsize) {
   offset += sizeof(n_input_path_size);
   input_path_size = ntohl(n_input_path_size);
 
-  buf = std::make_unique<char>(input_path_size);
+  /* buf = std::make_unique<char>(input_path_size); */
+  buf.reset(new char[input_path_size]);
   memcpy(buf.get(), buffer + offset, input_path_size);
   offset += input_path_size;
   this->input_path = std::string(buf.get());
@@ -90,7 +93,8 @@ void Task::Unmarshall(const char *buffer, int bufsize) {
   offset += sizeof(n_result_path_size);
   result_path_size = ntohl(n_result_path_size);
 
-  buf = std::make_unique<char>(result_path_size);
+  /* buf = std::make_unique<char>(result_path_size); */
+  buf.reset(new char[result_path_size]);
   memcpy(buf.get(), buffer + offset, result_path_size);
   offset += result_path_size;
   this->result_path = std::string(buf.get());
