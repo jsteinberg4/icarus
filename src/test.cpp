@@ -6,10 +6,12 @@ int main(int argc, char *argv[]) {
   common::Task t1{"/home/steinberg1/icarus/hello.sh", "another/path",
                   "third/path", common::Status::Done};
   common::Task t2;
-  auto buf = std::make_unique<char>(t1.Size());
-  t1.Marshall(buf.get(), t1.Size());
+  /* auto buf = std::make_unique<char>(t1.Size()); */
+  char *buf = new char[t1.Size()];
+  t1.Marshall(buf, t1.Size());
 
-  t2.Unmarshall(buf.get(), t1.Size());
+  t2.Unmarshall(buf, t1.Size());
+  delete[] buf;
 
   std::cout << "Assertions beginning..\n";
 
