@@ -27,7 +27,6 @@ int Socket::Send(char *buffer, int size, int flags) {
   int bytes_written = 0;
   int offset = 0;
   while (size > 0) {
-    std::cout << "Socket::Send writing bytes...\n";
     bytes_written = send(fd_, buffer + offset, size, flags);
     if (bytes_written < 0) {
       /*

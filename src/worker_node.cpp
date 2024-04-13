@@ -35,13 +35,14 @@ void WorkerNode::Run(std::string master_ip, int port) {
 
     if (t.GetStatus() == common::Status::InProgress) {
       auto status = this->ExecTask(t); // Handle fork+exec
+      break;
       this->stub.SubmitTask(t, status);
     } else {
       std::cout << "Received task that is not in progress\n";
     }
 
     // FIXME: Remove
-    std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::this_thread::sleep_for(std::chrono::seconds(10));
   }
 }
 
@@ -70,7 +71,8 @@ common::Status WorkerNode::ExecTask(common::Task &t) {
   // Parent
   int exit_status;
   auto self = getpid();
-  std::cout << "Worker parent pid=" << self << " blocking till task finishes\n";
+  std::cout << "Worker parent pid=" << self << " blocking until child=" << pid
+            << " exits/crashes\n";
   if (waitpid(pid, &exit_status, 0) == -1) {
     // TODO: Handle errors on wait
     std::cerr << "Parent pid=" << pid << ". Error occurred on waitpid\n";

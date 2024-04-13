@@ -18,6 +18,10 @@ void TaskScheduler::Init(std::string fsroot, std::string input_file,
   std::cout << "WARNING: Putting a dummy task (hello.sh) onto queue\n";
   this->idle.emplace_front(this->fs_root + "/hello.sh", "", "",
                            common::Status::Idle);
+  /* this->idle.emplace_front("pwd/hello.sh", "input/path/file.txt", */
+  /*                          "output/path/file.txt", common::Status::Idle); */
+  /* this->idle.emplace_front("hello.sh", "input", "output",
+   * common::Status::Idle); */
 
   this->is_initialized = true;
   this->ready = false;

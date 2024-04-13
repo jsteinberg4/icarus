@@ -5,6 +5,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <string_view>
 namespace common {
 
 int Task::Size() const {
@@ -66,7 +67,6 @@ int Task::Marshall(char *buffer, int bufsize) const {
 
 void Task::Unmarshall(const char *buffer, int bufsize) {
   std::cout << "Task::Unmarshall\n";
-  /* std::unique_ptr<char> buf; */
   char *buf;
   int offset = 0;
   int n_obj_path_size = 0, obj_path_size = 0;
@@ -80,8 +80,6 @@ void Task::Unmarshall(const char *buffer, int bufsize) {
   obj_path_size = ntohl(n_obj_path_size);
   std::cout << "Task::Unmarshall obj path size=" << obj_path_size << "\n";
 
-  /* buf = std::make_unique<char>(obj_path_size); */
-  /* buf.reset(new char[obj_path_size]); */
   buf = new char[obj_path_size + 1];
   memset(buf, 0, obj_path_size + 1);
   memcpy(buf, buffer + offset, obj_path_size);
@@ -95,15 +93,9 @@ void Task::Unmarshall(const char *buffer, int bufsize) {
   offset += sizeof(n_input_path_size);
   input_path_size = ntohl(n_input_path_size);
   std::cout << "Task::Unmarshall input path size=" << input_path_size << "\n";
+  std::cout << "Task::Unmarshall: input_path view: "
+            << std::string_view(buffer + offset, input_path_size) << "\n";
 
-  /* buf = std::make_unique<char>(input_path_size); */
-  // buf.reset(new char[input_path_size]);
-  // std::cout << "Task::Unmarshall input path done alloc\n";
-  // memcpy(buf.get(), buffer + offset, input_path_size);
-  // std::cout << "Task::Unmarshall input path memcpy\n";
-  // offset += input_path_size;
-  // this->input_path = std::string(buf.get());
-  /* char buf2[input_path_size]; */
   buf = new char[input_path_size + 1];
   memset(buf, 0, input_path_size + 1);
   memcpy(buf, buffer + offset, input_path_size);
@@ -119,8 +111,6 @@ void Task::Unmarshall(const char *buffer, int bufsize) {
   result_path_size = ntohl(n_result_path_size);
   std::cout << "Task::Unmarshall result path size=" << result_path_size << "\n";
 
-  /* buf = std::make_unique<char>(result_path_size); */
-  /* buf.reset(new char[result_path_size]); */
   buf = new char[result_path_size + 1];
   memset(buf, 0, result_path_size + 1);
   memcpy(buf, buffer + offset, result_path_size);

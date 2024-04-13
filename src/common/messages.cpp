@@ -97,8 +97,7 @@ void Request::UnmarshallData(const char *buffer, int bufsize) noexcept {
   }
   assert(bufsize <= this->data_len);
 
-  this->data.reset();
-  this->data = std::make_unique<char>(this->data_len);
+  this->data.reset(new char[this->data_len]);
   memcpy(this->data.get(), buffer, this->data_len);
 }
 
