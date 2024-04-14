@@ -43,7 +43,7 @@ void kill_worker(pid_t worker) {
 
 }; // namespace coordinator
 
-static void run_pool(std::string ip, int port, int n_workers) {
+static void run_pool(std::string ip, int port, unsigned int n_workers) {
   std::vector<pid_t> workers;
 
   // Maintain a pool of workers. Cleanup on SIGINT

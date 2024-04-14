@@ -1,5 +1,6 @@
 #include "util.h"
 
+#include <iostream>
 #include <libgen.h>
 #include <sstream>
 #include <string>
@@ -10,7 +11,14 @@ namespace util {
 std::string NameIntermediateFile(std::string base, std::string output_dir,
                                  std::string map_input, int reduce_id) {
   std::stringstream fname;
-  fname << base << output_dir << map_input << "_reducerInput_" << reduce_id;
+  fname << base << output_dir << map_input << "_reduce_" << reduce_id;
+  return fname.str();
+}
+
+std::string NameReduceOutfile(std::string base, std::string output_dir,
+                              std::string input, int reducer_id) {
+  std::stringstream fname;
+  fname << base << output_dir << input << "_mapreduce_" << reducer_id;
   return fname.str();
 }
 

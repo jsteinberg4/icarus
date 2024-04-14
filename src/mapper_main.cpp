@@ -4,6 +4,7 @@
  *
  */
 
+#include "common/shared_locations.h"
 #include "common/util.h"
 #include <cctype>
 #include <cstdlib>
@@ -17,7 +18,6 @@
 #include <vector>
 
 namespace mapper {
-constexpr const char OUTDIR[] = "reducerInputs/";
 namespace cmd {
 constexpr const char USAGE[] =
     "./mapper <root directory> <input file> <reduce modulo>";
@@ -40,7 +40,7 @@ protected:
     }
   };
 
-  void Persist() {
+  inline int Persist() {
     std::ofstream outputs[this->R];
     for (int rid = 0; rid < this->R; rid++) {
       std::string fname = common::util::NameIntermediateFile(
@@ -49,6 +49,11 @@ protected:
       // Clear file contents if already exists
       std::cout << "Creating output file: " << fname << "\n";
       outputs[rid] = std::ofstream(fname, std::ios::trunc);
+
+      if (!outputs[rid].is_open()) {
+        std::cerr << "Unable to open results file: " << fname << "\n";
+        return 1;
+      }
     }
 
     for (auto &kv_pair : this->intermediate_vals) {
@@ -68,6 +73,8 @@ protected:
         }
       }
     }
+
+    return 0;
   }
 
 public:
@@ -104,8 +111,7 @@ public:
 
     // Dump output
     std::cout << "Persisting results\n";
-    this->Persist();
-    return 0;
+    return this->Persist();
   }
 };
 

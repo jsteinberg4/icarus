@@ -18,6 +18,9 @@ namespace util {
 std::string NameIntermediateFile(std::string base, std::string output_dir,
                                  std::string map_input, int reduce_id);
 
+std::string NameReduceOutfile(std::string base, std::string output_dir,
+                              std::string input, int reducer_id);
+
 /**
  * @brief Extract basename of a path
  *
