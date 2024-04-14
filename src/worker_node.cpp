@@ -59,11 +59,14 @@ common::Status WorkerNode::ExecTask(common::Task &t) {
               << (t.GetRoot() + "/" + t.GetObjPath()).c_str() << " "
               << t.GetObjPath().c_str() << " " << t.GetRoot().c_str() << " "
               << t.GetInputPath().c_str() << " " << atoi(t.GetOutPath().c_str())
-              << " "
               << "\n";
-    execl((t.GetRoot() + "/" + t.GetObjPath()).c_str(), t.GetObjPath().c_str(),
-          t.GetRoot().c_str(), t.GetInputPath().c_str(),
-          atoi(t.GetOutPath().c_str()), NULL);
+
+    // execl("/Users/jesse/Course-Repos/icarus/hello.sh", "hello.sh",
+    //       "/Users/jesse/Course-Repos/icarus",
+    //       "/Users/jesse/Course-Repos/icarus/mapInput_1", "1", NULL);
+    std::string full_exe = (t.GetRoot() + "/" + t.GetObjPath());
+    execl(full_exe.c_str(), t.GetObjPath().c_str(), t.GetInputPath().c_str(),
+          t.GetOutPath().c_str(), NULL);
 
     // Should be unreachable; just an extra safeguard for my sanity
     std::cout << "exec returned (" << errno << ") " << std::strerror(errno)
