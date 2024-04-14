@@ -15,8 +15,7 @@ std::string NameIntermediateFile(std::string base, std::string output_dir,
 }
 
 std::string Basename(std::string path, bool keep_extension) {
-  std::string base(path.size(), '\0');
-  basename_r(path.c_str(), &base[0]);
+  std::string base(basename(&path[0]));
 
   if (!keep_extension) {
     return base.substr(0, base.find_last_of('.'));
