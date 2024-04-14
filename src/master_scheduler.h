@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/task.h"
+#include <atomic>
 #include <deque>
 #include <mutex>
 #include <string>

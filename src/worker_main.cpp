@@ -46,7 +46,7 @@ void kill_worker(pid_t worker) {
 int main(int argc, char *argv[]) {
   std::string ip;
   int port;
-  int n_workers;
+  unsigned int n_workers;
   std::vector<pid_t> workers;
 
   if (argc != 4) {
