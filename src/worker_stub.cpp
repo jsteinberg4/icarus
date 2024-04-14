@@ -20,9 +20,6 @@ bool WorkerStub::Register(std::string ip, int port) {
   // TODO: data for worker registration?
   auto sent = this->SendRequest(common::rpc::RequestType::Register, nullptr, 0);
 
-  std::cout << "WorkerStub::Register msg_size=" << id.Size()
-            << " bytes written=" << sent << "\n";
-
   return sent > 0;
 }
 

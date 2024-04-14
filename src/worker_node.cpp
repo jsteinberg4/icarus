@@ -1,22 +1,18 @@
 #include "worker_node.h"
 #include "common/task.h"
+#include <cerrno>
 #include <chrono>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <string>
 #include <string_view>
 #include <sys/wait.h>
+#include <system_error>
 #include <thread>
 #include <unistd.h>
 
 namespace worker {
-
-static std::string exe_name(std::string path_to_exe) {
-  /* std::find_end(path_to_exe.begin(), path_to_exe.end(), ForwardIterator2
-   * first2, ForwardIterator2 last2) */
-  /* std::string_view()std::find(path_to_exe.rbegin(), path_to_exe.rend(), "/");
-   */
-  return path_to_exe.substr(path_to_exe.rfind("/"));
-}
 
 //------------------
 // Public functions
@@ -58,13 +54,20 @@ common::Status WorkerNode::ExecTask(common::Task &t) {
     return common::Status::Idle;
   } else if (pid == 0) { // Child
     // TODO: Arguments/environment vars to pass
-    std::string exe = exe_name(t.GetObjPath());
-    std::cout << "Object path was: " << exe << ", exe name=" << exe << "\n";
-    execl(t.GetObjPath().c_str(), exe.c_str(), NULL);
+    /* execl(t.GetObjPath().c_str(), exe.c_str(), NULL); */
+    std::cout << "Worker is exec the following: "
+              << (t.GetRoot() + "/" + t.GetObjPath()).c_str() << " "
+              << t.GetObjPath().c_str() << " " << t.GetRoot().c_str() << " "
+              << t.GetInputPath().c_str() << " " << atoi(t.GetOutPath().c_str())
+              << " "
+              << "\n";
+    execl((t.GetRoot() + "/" + t.GetObjPath()).c_str(), t.GetObjPath().c_str(),
+          t.GetRoot().c_str(), t.GetInputPath().c_str(),
+          atoi(t.GetOutPath().c_str()), NULL);
 
-    // Dummy example
-    // execl("/Users/jesse/Course-Repos/mapreduce/hello.sh", "hello.sh", NULL);
     // Should be unreachable; just an extra safeguard for my sanity
+    std::cout << "exec returned (" << errno << ") " << std::strerror(errno)
+              << "\n";
     exit(1);
   }
 

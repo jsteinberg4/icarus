@@ -6,7 +6,7 @@
 #include "master_stub.h"
 #include <iostream>
 #include <memory>
-#include <thread>
+#include <stdexcept>
 #include <vector>
 
 namespace master {
@@ -32,7 +32,8 @@ void MasterNode::ServeRequests(int port) {
   }
 
   // FIXME: Remove once clients exist
-  this->scheduler.Init(this->fs_root, "", 0, 0, 0);
+  this->scheduler.Init(this->fs_root, "essay.txt", 2, "hello.sh", 1,
+                       "hello.sh");
   this->scheduler.MarkReady();
 
   // TODO: Lock? probably not needed as long as only this thread uses
@@ -114,41 +115,50 @@ void MasterNode::WorkerCoordinatorThread(std::unique_ptr<MasterStub> stub) {
   // inactive!
   common::Task active;
 
-  while (true) {
-    common::Task next;
-    // NOTE: Pseudocode
-    // 1) Get task update
-    // 2)
-    //  a) Mark completed task as completed (or failed as idle)
-    //  b) Catch error when socket is closed. Mark task as idle
-    // 3) Assign a new task
-    active = stub->WorkerTaskUpdate();
+  try {
+    while (true) {
+      common::Task next;
+      // NOTE: Pseudocode
+      // 1) Get task update
+      // 2)
+      //  a) Mark completed task as completed (or failed as idle)
+      //  b) Catch error when socket is closed. Mark task as idle
+      // 3) Assign a new task
+      active = stub->WorkerTaskUpdate();
 
-    switch (active.GetStatus()) {
-    case common::Status::Idle:
-      // TODO: 2 cases
-      // 1) First request for a task
-      // 2) Assigned task has failed
-      // TODO: Use scheduler to get a new task
-      /* stub->AssignTask(next); */
-      // FIXME: Assumes case 1
-      next = this->scheduler.GetTask();
-      std::cout << "Worker wants a task!\n";
-      stub->AssignTask(next);
-      active = next;
-      break;
-    case common::Status::InProgress:
-      // TODO: Do nothing
-      break;
-    case common::Status::Done:
-      // TODO: Mark task complete; assign new task
-      /* this->scheduler.UpdateTask(active, common::Status::Done); */
-      /* stub->AssignTask(next); */
-      std::cout << "Worker finished the task!\n";
-      break;
-    default:
-      // TODO: default case... do nothing?
-      break;
+      switch (active.GetStatus()) {
+      case common::Status::Idle:
+        if (active.GetStatus() == common::Status::InProgress) {
+          // Worker's task failed
+          this->scheduler.UpdateTask(active, common::Status::InProgress,
+                                     common::Status::Idle);
+        }
+        next = this->scheduler.GetTask();
+        std::cout << "Worker wants a task!\n";
+        stub->AssignTask(next);
+        active = next;
+        break;
+      case common::Status::InProgress:
+        // TODO: Do nothing
+        break;
+      case common::Status::Done:
+        this->scheduler.UpdateTask(active, common::Status::InProgress,
+                                   common::Status::Done);
+        active = common::Task{};
+        active.SetStatus(common::Status::Idle);
+        std::cout << "Worker finished the task!\n";
+        break;
+      default:
+        // TODO: default case... do nothing?
+        break;
+      }
+    }
+  } catch (std::runtime_error e) {
+    std::cerr
+        << "MasterNode::WorkerCoordinatorThread: Error with connected socket\n";
+    if (active.GetStatus() == common::Status::InProgress) {
+      this->scheduler.UpdateTask(active, common::Status::InProgress,
+                                 common::Status::Idle);
     }
   }
 }

@@ -12,23 +12,34 @@ enum class Status {
   Done = 2,       // Done: The task has successfully completed on a worker
 };
 
+enum class TaskType {
+  Map = 1,
+  Reduce = 2,
+};
+
 class Task {
   // TODO: Make input and output paths List[str]. Map tasks will only use one
   // input. Reduce will be many in, many out
   // NOTE: encoding that will suck. Devise scheme to keep single string.
 public:
-  inline Task() : Task("", "", "", Status::Invalid){};
+  inline Task() : Task(TaskType::Map, "", "", "", "", Status::Invalid){};
 
-  inline Task(std::string obj_path, std::string input_path,
-              std::string result_path, Status status = Status::Invalid)
-      : obj_path(std::move(obj_path)), input_path(std::move(input_path)),
-        result_path(std::move(result_path)), status(status) {}
+  inline Task(TaskType t, std::string root, std::string obj_path,
+              std::string input_path, std::string result_path,
+              Status status = Status::Invalid)
+      : type(t), root(root), obj_path(std::move(obj_path)),
+        input_path(std::move(input_path)), result_path(std::move(result_path)),
+        status(status) {}
 
   int Size() const;
+  TaskType GetType() const noexcept;
+  std::string GetRoot() const noexcept;
   std::string GetObjPath() const noexcept;
   std::string GetInputPath() const noexcept;
   std::string GetOutPath() const noexcept;
   Status GetStatus() const noexcept;
+  void SetType(TaskType t) noexcept;
+  void SetRoot(std::string path) noexcept;
   void SetObjPath(std::string path) noexcept;
   void SetInputPath(std::string path) noexcept;
   void SetOutPath(std::string path) noexcept;
@@ -68,10 +79,11 @@ public:
   }
 
 private:
+  TaskType type;
+  std::string root; // Base directory for all other paths
   std::string obj_path;
   std::string input_path;
-  std::string result_path; // TODO: Tasks likely to have *several* output
-                           // paths... Make a filepath stem?
+  std::string result_path;
   Status status;
 };
 

@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <vector>
 
 namespace master {
@@ -19,7 +20,7 @@ void MasterStub::Init(std::unique_ptr<common::TcpSocket> sock) {
   this->socket.swap(sock);
 }
 
-common::rpc::NodeType MasterStub::RecvRegistration() noexcept {
+common::rpc::NodeType MasterStub::RecvRegistration() {
   common::rpc::Request req;
   this->RecvRequest(req);
 
@@ -32,24 +33,22 @@ common::rpc::NodeType MasterStub::RecvRegistration() noexcept {
 }
 
 void MasterStub::AssignTask(common::Task &t) {
-  std::cout << "MasterStub::AssignTask\n";
   auto buf = std::make_unique<char>(t.Size());
   t.Marshall(buf.get(), t.Size());
 
-  // Retransmit until sent
-  while (this->SendRequest(common::rpc::RequestType::TaskUpdate, std::move(buf),
-                           t.Size()) < t.Size())
-    ;
+  if (this->SendRequest(common::rpc::RequestType::TaskUpdate, std::move(buf),
+                        t.Size()) < 0) {
+    throw std::runtime_error("MasterStub::AssignTask: socket error");
+  }
 }
 
-common::Task MasterStub::WorkerTaskUpdate() noexcept {
-  std::cout << "MasterStub::WorkerTaskUpdate\n";
+common::Task MasterStub::WorkerTaskUpdate() {
   common::rpc::Request req;
   common::Task t;
 
   // Clear & retry
-  while (this->RecvRequest(req) < 1) {
-    req.Reset();
+  if (this->RecvRequest(req) < 1) {
+    throw std::runtime_error("MasterStub::WorkerTaskUpdate: socket error");
   }
 
   // Invalid update
@@ -65,32 +64,24 @@ common::Task MasterStub::WorkerTaskUpdate() noexcept {
 // Protected functions
 //------------------
 int MasterStub::RecvRequest(common::rpc::Request &req) const noexcept {
-  std::cout << "MasterStub::RecvRequest\n";
   std::vector<char> buf(req.HeaderSize());
   int b_read = 0;
 
   // Read the size header
   b_read = this->socket->Recv(buf.data(), req.HeaderSize());
-  std::cout << "MasterStub::RecvRequest: header size=" +
-                   std::to_string(b_read) +
-                   " expected=" + std::to_string(req.HeaderSize()) + "\n";
   if (b_read != req.HeaderSize()) {
     std::cerr << "MasterStub::RecvRequest: size header too small\n";
-    exit(1); // FIXME: Remove this. just a brief panic test
+    return -1;
   }
 
   // Read packet
-  std::cout << "recvrequest buf size=" << buf.size()
-            << " buf cap=" << buf.capacity() << "\n";
   req.UnmarshallHeaders(buf.data(), b_read);
   buf.clear();
   buf.resize(req.DataSize());
-  std::cout << "MasterStub::RecvRequest: header says packet size="
-            << req.DataSize() << "\n";
   if ((b_read = this->socket->Recv(buf.data(), req.DataSize())) !=
       req.DataSize()) {
     std::cerr << "MasterStub::RecvRequest: packet size incorrect\n";
-    exit(1); // FIXME: Remove this. just a brief panic test
+    return -1;
   }
   req.UnmarshallData(buf.data(), buf.size());
 

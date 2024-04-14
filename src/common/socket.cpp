@@ -50,10 +50,6 @@ int Socket::Recv(char *buffer, int size, int flags) {
   int bytes_read = 0;
   int offset = 0;
   while (size > 0) {
-    std::stringstream s;
-    s << "Socket::Recv: reading bytes (" << bytes_read << "B read, " << size
-      << "B remain)\n";
-    std::cout << s.str();
     bytes_read = recv(this->fd_, buffer + offset, size, flags);
     if (bytes_read <= 0) {
       /*

@@ -12,6 +12,8 @@
 namespace master {
 
 constexpr int DEFAULT_TASK_SIZE = 16 << 20; // 16MB
+constexpr const char DEFAULT_MAPPER[] = "hello.sh";
+constexpr const char DEFAULT_REDUCER[] = "hello.sh";
 
 /**
  * @class MasterNode

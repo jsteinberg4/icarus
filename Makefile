@@ -51,6 +51,7 @@ TARGET := master worker mapper reducer
 all:  builddir $(TARGET)
 
 builddir:
+	@echo "$(YELLOW)Create build directory $(BIN)$(END)"
 	mkdir -p $(BIN)
 
 debug: DFLAGS := -ggdb -DDEBUG

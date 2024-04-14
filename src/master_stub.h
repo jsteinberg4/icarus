@@ -30,7 +30,7 @@ public:
   /**
    * @brief Receive a node's identification message
    */
-  common::rpc::NodeType RecvRegistration() noexcept;
+  common::rpc::NodeType RecvRegistration();
   /* void AckRegistration();                   // TODO: */
 
   // -------------------
@@ -42,8 +42,8 @@ public:
   // -------------------
   // Worker coordination
   // -------------------
-  common::Task WorkerTaskUpdate() noexcept;
-  bool WorkerIsAlive() noexcept;
+  common::Task WorkerTaskUpdate();
+  bool WorkerIsAlive();
 
   /**
    * Tell worker to complete a task

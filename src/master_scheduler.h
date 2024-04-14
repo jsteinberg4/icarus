@@ -1,10 +1,10 @@
 #pragma once
 
 #include "common/task.h"
-#include <atomic>
 #include <deque>
 #include <mutex>
 #include <string>
+#include <vector>
 
 namespace master {
 
@@ -33,14 +33,13 @@ public:
    * Note: This will overwrite any existing state
    *
    * @param input_file original input for the whole MapReduce job
-   * @param chunksize desired size of each Mapper input in bytes
    * @param n_mappers # partitions to break input_file into
    * @param n_reducers # of result files
    *
    * TODO: What error type??
    */
-  void Init(std::string fsroot, std::string input_file, int chunksize,
-            int n_mappers, int n_reducers);
+  void Init(std::string fsroot, std::string input_file, int n_mappers,
+            std::string mapper, int n_reducers, std::string reducer);
 
   void UpdateTask(const common::Task &t, common::Status old,
                   common::Status new_) noexcept;
@@ -50,11 +49,51 @@ public:
   bool MarkReady() noexcept;
 
 private:
+  struct lock_conf {
+    bool map_tasks_lk = false;
+    bool reduce_tasks_lk = false;
+    bool idle_lk = false;
+    bool active_lk = false;
+    bool done_lk = false;
+
+    inline void EnableType(common::TaskType t) {
+      switch (t) {
+      case common::TaskType::Map:
+        this->map_tasks_lk = true;
+        break;
+      case common::TaskType::Reduce:
+        this->reduce_tasks_lk = true;
+        break;
+      default:
+        break;
+      }
+    }
+
+    inline void EnableStatus(common::Status s) {
+      switch (s) {
+      case common::Status::Idle:
+        this->idle_lk = true;
+        break;
+      case common::Status::InProgress:
+        this->active_lk = true;
+        break;
+      case common::Status::Done:
+        this->done_lk = true;
+        break;
+      case common::Status::Invalid:
+      default:
+        break;
+      }
+    }
+  };
+
   std::atomic_bool is_initialized;
   std::atomic_bool ready; // Don't assign tasks if false. ready is true iff
                           // is_initialized is true.
   std::atomic<common::Status> status; // Overall job completion
   std::string fs_root;                // Root path for all files
+  std::atomic_bool map_done;
+  std::atomic_bool reduce_done;
 
   // NOTE: Locking order. ONLY lock in this order. Unlock in reverse.
   // 1) map_tasks_lk
@@ -74,23 +113,73 @@ private:
   std::mutex done_lk;
 
   inline void LockAll() noexcept {
-    this->map_tasks_lk.lock();
-    this->reduce_tasks_lk.lock();
-    this->idle_lk.lock();
-    this->active_lk.lock();
-    this->done_lk.lock();
+    this->LockSome({
+        .map_tasks_lk = true,
+        .reduce_tasks_lk = true,
+        .idle_lk = true,
+        .active_lk = true,
+        .done_lk = true,
+    });
   }
+  inline void LockSome(struct lock_conf lks) {
+    if (lks.map_tasks_lk) {
+      this->map_tasks_lk.lock();
+    }
+    if (lks.reduce_tasks_lk) {
+      this->reduce_tasks_lk.lock();
+    }
+    if (lks.idle_lk) {
+      this->idle_lk.lock();
+    }
+    if (lks.active_lk) {
+      this->active_lk.lock();
+    }
+    if (lks.done_lk) {
+      this->done_lk.lock();
+    }
+  }
+
   inline void UnlockAll() noexcept {
-    this->done_lk.unlock();
-    this->active_lk.unlock();
-    this->idle_lk.unlock();
-    this->reduce_tasks_lk.unlock();
-    this->map_tasks_lk.unlock();
+    this->UnlockSome({
+        .map_tasks_lk = true,
+        .reduce_tasks_lk = true,
+        .idle_lk = true,
+        .active_lk = true,
+        .done_lk = true,
+    });
+  }
+  inline void UnlockSome(struct lock_conf lks) {
+    if (lks.done_lk) {
+      this->done_lk.unlock();
+    }
+    if (lks.active_lk) {
+      this->active_lk.unlock();
+    }
+    if (lks.idle_lk) {
+      this->idle_lk.unlock();
+    }
+    if (lks.reduce_tasks_lk) {
+      this->reduce_tasks_lk.unlock();
+    }
+    if (lks.map_tasks_lk) {
+      this->map_tasks_lk.unlock();
+    }
   }
 
   /**
    * @brief Clear all internal state
    */
   void Reset() noexcept;
+
+  std::vector<std::string> PartitionInput(std::string fsroot, std::string input,
+                                          int n_mappers);
+  inline std::deque<common::Task> GetStatusQueue(common::Status s) {
+    if (s == common::Status::Idle)
+      return this->idle;
+    if (s == common::Status::InProgress)
+      return this->active;
+
+    return this->done;
+  }
 };
 } // namespace master

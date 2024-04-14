@@ -19,23 +19,16 @@
 
 namespace mapper {
 namespace cmd {
-constexpr const char USAGE[] = "./mapper <input file> <reduce modulo>";
+constexpr const char USAGE[] =
+    "./mapper <root directory> <input file> <reduce modulo>";
 }
 
 class Mapper {
 protected:
   std::map<std::string, std::vector<std::string>> intermediate_vals;
+  std::string rootdir;
   std::string filename;
   int R; // reducer modulo
-  std::map<std::string, std::ofstream> r_fstreams;
-
-  virtual ~Mapper() {
-    for (auto &fname_stream : this->r_fstreams) {
-      if (fname_stream.second.is_open()) {
-        fname_stream.second.close();
-      }
-    }
-  }
 
   void Emit(std::string key, std::string value) {
     auto iter = this->intermediate_vals.find(key);
@@ -48,10 +41,17 @@ protected:
   };
 
   void Persist() {
+    std::ofstream outputs[this->R];
+    for (int rid = 0; rid < this->R; rid++) {
+      outputs[rid] = std::ofstream("");
+    }
+
     for (auto &kv_pair : this->intermediate_vals) {
       std::string key = kv_pair.first;
       std::vector<std::string> values = kv_pair.second;
-      std::ofstream &r_fstream = this->GetOutputFile(key);
+
+      auto hash = std::hash<std::string>{}(key) % this->R;
+      std::ofstream &r_fstream = outputs[hash];
 
       // Write each key as a single line
       r_fstream << key + ",";
@@ -65,23 +65,9 @@ protected:
     }
   }
 
-  std::ofstream &GetOutputFile(std::string key) {
-    auto hash = std::hash<std::string>{}(key) % this->R;
-    // TODO: Get correct output file name using hash
-    std::string r_filename = "reducer_file.txt";
-    auto iter = this->r_fstreams.find(r_filename);
-
-    if (iter == this->r_fstreams.end()) {
-      std::ofstream stream(r_filename, std::ios::app);
-      this->r_fstreams.emplace(r_filename, std::move(stream));
-      iter = this->r_fstreams.find(r_filename);
-    }
-
-    return iter->second;
-  }
-
 public:
-  Mapper(std::string filename, int R) : filename(std::move(filename)), R(R) {}
+  Mapper(std::string rootdir, std::string filename, int R)
+      : rootdir(std::move(rootdir)), filename(std::move(filename)), R(R) {}
   virtual void Map(std::string key, std::string value);
   int Run() {
     // Load file
@@ -111,7 +97,8 @@ public:
  */
 class WordCounter : public Mapper {
 public:
-  WordCounter(std::string filename, int R) : Mapper(filename, R){};
+  WordCounter(std::string rootdir, std::string filename, int R)
+      : Mapper(rootdir, filename, R){};
   void Map(std::string filename, std::string contents) override {
     int i = 0;
     while (i < contents.size()) {
@@ -134,15 +121,12 @@ public:
 } // namespace mapper
 
 int main(int argc, char *argv[]) {
-  std::string input_file;
-  int reducer_modulo;
-
-  if (argc != 3) {
+  if (argc != 4) {
     std::cerr << mapper::cmd::USAGE << std::endl;
     return 1;
   }
-  input_file = argv[1];
-  reducer_modulo = atoi(argv[2]);
-  auto wc = mapper::WordCounter(input_file, reducer_modulo);
+
+  auto wc = mapper::WordCounter(std::string(argv[1]), std::string(argv[2]),
+                                atoi(argv[3]));
   return wc.Run();
 }
