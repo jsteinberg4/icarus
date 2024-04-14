@@ -123,14 +123,14 @@ public:
   WordCounter(std::string rootdir, std::string filename, int R)
       : Mapper(rootdir, filename, R){};
   void Map(std::string filename, std::string contents) override {
-    int i = 0;
+    unsigned int i = 0;
     while (i < contents.size()) {
       // Skip past leading white space
       while ((i < contents.size()) && std::isspace(contents[i])) {
         i++;
       }
       // Find word end
-      int word_start = i;
+      unsigned int word_start = i;
       while ((i < contents.size()) && !std::isspace(contents[i])) {
         i++;
       }
