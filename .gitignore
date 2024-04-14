@@ -39,7 +39,10 @@ bin/
 compile_commands.json
 .cache/
 venv/ 
-
-# Other
 .vscode/
+
+# MapReduce intermediate files
 mount-point/
+inputs/
+reducerInputs/
+

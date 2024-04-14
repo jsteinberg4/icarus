@@ -6,6 +6,7 @@
  * ./mapper <input file> <reduce modulo>
  */
 
+#include "common/util.h"
 #include <cctype>
 #include <cstdlib>
 #include <fstream>
@@ -18,6 +19,7 @@
 #include <vector>
 
 namespace mapper {
+constexpr const char OUTDIR[] = "reducerInputs/";
 namespace cmd {
 constexpr const char USAGE[] =
     "./mapper <root directory> <input file> <reduce modulo>";
@@ -43,7 +45,12 @@ protected:
   void Persist() {
     std::ofstream outputs[this->R];
     for (int rid = 0; rid < this->R; rid++) {
-      outputs[rid] = std::ofstream("");
+      std::string fname = common::util::NameIntermediateFile(
+          this->rootdir, OUTDIR, common::util::Basename(this->filename, false),
+          rid);
+      // Clear file contents if already exists
+      std::cout << "Creating output file: " << fname << "\n";
+      outputs[rid] = std::ofstream(fname, std::ios::trunc);
     }
 
     for (auto &kv_pair : this->intermediate_vals) {
@@ -56,7 +63,7 @@ protected:
       // Write each key as a single line
       r_fstream << key + ",";
       for (auto it = values.begin(); it != values.end(); it++) {
-        if (std::next(it) == values.end()) {
+        if (std::next(it) != values.end()) {
           r_fstream << *it + ",";
         } else {
           r_fstream << *it + "\n";
@@ -67,8 +74,22 @@ protected:
 
 public:
   Mapper(std::string rootdir, std::string filename, int R)
-      : rootdir(std::move(rootdir)), filename(std::move(filename)), R(R) {}
-  virtual void Map(std::string key, std::string value);
+      : rootdir(std::move(rootdir)), filename(std::move(filename)), R(R) {
+    // Make sure root dir is a directory path
+    if (this->rootdir.size() > 0 &&
+        this->rootdir.substr(this->rootdir.size() - 1, 1) != "/") {
+      this->rootdir.append("/");
+    }
+  }
+  /**
+   * @brief A 'map' function as defined by the MapReduce paradigm. MUST be
+   * overridden by users.
+   *
+   * @param key map function input key
+   * @param value map function input value
+   */
+  virtual void Map(std::string key, std::string value) = 0;
+
   int Run() {
     // Load file
     std::ifstream file(this->filename);
@@ -80,9 +101,11 @@ public:
     contents << file.rdbuf();
 
     // Apply user function
+    std::cout << "Applying user map function\n";
     this->Map(this->filename, contents.str());
 
     // Dump output
+    std::cout << "Persisting results\n";
     this->Persist();
     return 0;
   }

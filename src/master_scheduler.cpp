@@ -153,7 +153,7 @@ std::vector<std::string> TaskScheduler::PartitionInput(std::string fsroot,
   while (reading) {
     std::string buf(task_size, '\0');
 
-    // FIXME: Input can be split in the middle of a word
+    // FIXME: Input can be split in the middle of a word. Make content aware!
     if (file.read(&buf[0], task_size)) {
       std::string fname = fsroot + "/mapInput_" + std::to_string(task_id);
 
