@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+
 namespace common {
 
 /* The status of a Map or Reduce task. */
@@ -44,6 +45,7 @@ public:
   void SetInputPath(std::string path) noexcept;
   void SetOutPath(std::string path) noexcept;
   void SetStatus(Status s) noexcept;
+  std::string str() const;
 
   /**
    * @brief Write this object as a bytestring
@@ -69,13 +71,15 @@ public:
    * Two tasks are equal iff:
    * - They describe the same executable
    * - They describe the same input file
+   * - They describe the same type of task
    *
    * @param other
    * @return true IFF the tasks are equal
    */
   bool operator==(const Task &other) {
-    return (this->obj_path == other.obj_path) &&
-           (this->input_path == other.input_path);
+    return this->type == other.type && this->root == other.root &&
+           this->obj_path == other.obj_path &&
+           this->input_path == other.input_path;
   }
 
 private:

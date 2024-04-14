@@ -2,8 +2,6 @@
  * @file
  * @brief Dummy 'mapper' stage to count words in a text file
  *
- * Usage:
- * ./mapper <input file> <reduce modulo>
  */
 
 #include "common/util.h"

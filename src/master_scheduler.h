@@ -3,6 +3,7 @@
 #include "common/task.h"
 #include <atomic>
 #include <deque>
+#include <iostream>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -91,8 +92,7 @@ private:
   std::atomic_bool is_initialized;
   std::atomic_bool ready; // Don't assign tasks if false. ready is true iff
                           // is_initialized is true.
-  std::atomic<common::Status> status; // Overall job completion
-  std::string fs_root;                // Root path for all files
+  std::string fs_root;    // Root path for all files
   std::atomic_bool map_done;
   std::atomic_bool reduce_done;
 
@@ -174,11 +174,15 @@ private:
 
   std::vector<std::string> PartitionInput(std::string fsroot, std::string input,
                                           int n_mappers);
-  inline std::deque<common::Task> GetStatusQueue(common::Status s) {
-    if (s == common::Status::Idle)
+  inline std::deque<common::Task> &GetStatusQueue(common::Status s) {
+    if (s == common::Status::Idle) {
+      std::cout << "Getting idle queue\n";
       return this->idle;
-    if (s == common::Status::InProgress)
+    }
+    if (s == common::Status::InProgress) {
+      std::cout << "Getting active queue\n";
       return this->active;
+    }
 
     return this->done;
   }

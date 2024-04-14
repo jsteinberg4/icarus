@@ -99,10 +99,12 @@ int MasterStub::SendRequest(common::rpc::RequestType type,
     req.SetData(std::move(data), data_len);
   }
 
-  auto buf = std::vector<char>(req.Size());
-  req.Marshall(buf.data(), buf.capacity());
+  // FIXME: for some reason this breaks the VSCode debugger on M1 mac. revert
+  // auto buf = std::vector<char>(req.Size());
+  std::unique_ptr<char> buf(new char[req.Size()]);
+  req.Marshall(buf.get(), req.Size());
 
-  return this->socket->Send(buf.data(), buf.size());
+  return this->socket->Send(buf.get(), req.Size());
 }
 
 } // namespace master

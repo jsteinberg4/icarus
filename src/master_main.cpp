@@ -31,6 +31,7 @@ int main(int argc, char *argv[]) {
 
   // TODO: Cleanup?
   node.ServeRequests(port);
+  std::cout << "Server returned!\n";
 
   return 0;
 }

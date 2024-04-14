@@ -1,14 +1,11 @@
 #include "worker_node.h"
 #include "common/task.h"
-#include <cerrno>
 #include <chrono>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <string>
-#include <string_view>
 #include <sys/wait.h>
-#include <system_error>
 #include <thread>
 #include <unistd.h>
 
@@ -30,16 +27,16 @@ void WorkerNode::Run(std::string master_ip, int port) {
     common::Task t = this->stub.RequestTask();
 
     if (t.GetStatus() == common::Status::InProgress) {
-      auto status = this->ExecTask(t); // Handle fork+exec
-      break;
+      auto status = this->ExecTask(t);
+      /* std::cout << "pre-submit\n"; */
       this->stub.SubmitTask(t, status);
-    } else {
-      std::cout << "Received task that is not in progress\n";
+      /* std::cout << "post-submit\n"; */
     }
-
     // FIXME: Remove
-    std::this_thread::sleep_for(std::chrono::seconds(10));
+    /* std::this_thread::sleep_for(std::chrono::seconds(2)); */
   }
+
+  std::cout << "end worker run\n";
 }
 
 //------------------
@@ -78,7 +75,6 @@ common::Status WorkerNode::ExecTask(common::Task &t) {
     return common::Status::Done;
   }
 
-  // TODO: Delete the output files
   std::cout << "Worker parent pid=" << self << " task failed\n";
   return common::Status::Idle;
 }

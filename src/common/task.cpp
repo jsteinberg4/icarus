@@ -2,7 +2,9 @@
 #include <arpa/inet.h>
 #include <cassert>
 #include <cstring>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 namespace common {
@@ -26,17 +28,18 @@ void Task::SetObjPath(std::string path) noexcept { this->obj_path = path; }
 void Task::SetInputPath(std::string path) noexcept { this->input_path = path; }
 void Task::SetOutPath(std::string path) noexcept { this->result_path = path; }
 void Task::SetStatus(Status s) noexcept { this->status = s; }
+std::string Task::str() const {
+  std::stringstream ss;
+  ss << "Task(root=" << std::quoted(this->root)
+     << " obj_path=" << std::quoted(this->obj_path)
+     << " input_path=" << std::quoted(this->input_path)
+     << " result_path=" << std::quoted(this->result_path)
+     << " status=" << (int)this->status << ")";
+  return ss.str();
+}
 
 int Task::Marshall(char *buffer, int bufsize) const {
-  std::cout << "Task::Marshall \n\t"
-            << "root: " + this->root + " len=" << this->root.size() << "\n\t"
-            << "obj_path: " + this->obj_path + " len=" << this->obj_path.size()
-            << "\n\t"
-            << "input_path: " + this->input_path + " len="
-            << this->input_path.size() << "\n\t"
-            << "result_path: " + this->result_path + " len="
-            << this->result_path.size() << "\n\t"
-            << "status: " << (int)this->status << "\n";
+  std::cout << "Task::Marshall " + this->str() + '\n';
   assert(this->Size() <= bufsize);
   memset(buffer, 0, bufsize);
 
@@ -134,13 +137,6 @@ void Task::Unmarshall(const char *buffer, int bufsize) {
   memcpy(&n_status, buffer + offset, sizeof(n_status));
   this->status = (Status)ntohl(n_status);
 
-  std::cout << "Task::Unmarshall\n\t"
-            << "obj_path: " + this->obj_path + " len=" << this->obj_path.size()
-            << "\n\t"
-            << "input_path: " + this->input_path + " len="
-            << this->input_path.size() << "\n\t"
-            << "result_path: " + this->result_path + " len="
-            << this->result_path.size() << "\n\t"
-            << "status: " << (int)this->status << "\n";
+  std::cout << "Task::Unmarshall " + this->str() + '\n';
 }
 } // namespace common

@@ -45,8 +45,6 @@ int Request::Size() const noexcept {
 int Request::Marshall(char *buffer, int bufsize) const {
   // Serialization Order:
   // | Request type | Sender type | Len(data segment) | data |
-  std::cerr << "RequestMarshall: bufsize=" << bufsize
-            << " this->size=" << this->Size() << "\n";
   assert(this->Size() <= bufsize);
   memset(buffer, 0, bufsize);
 
@@ -64,12 +62,10 @@ int Request::Marshall(char *buffer, int bufsize) const {
   memcpy(buffer + offset, this->data.get(), this->data_len);
   offset += this->data_len;
 
-  std::cout << "Request::Marshall: offset=" << offset << "\n";
   return offset;
 }
 
 void Request::UnmarshallHeaders(const char *buffer, int bufsize) noexcept {
-  std::cout << "Request::UnmarshallHeaders\n";
   int offset = 0;
   int n_type = -1;
   int n_sender = -1;
@@ -90,7 +86,6 @@ void Request::UnmarshallHeaders(const char *buffer, int bufsize) noexcept {
 }
 
 void Request::UnmarshallData(const char *buffer, int bufsize) noexcept {
-  std::cout << "Request::UnmarshallData\n";
   // No data expected
   if (this->data_len < 1) {
     return;

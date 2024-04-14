@@ -108,10 +108,7 @@ int WorkerStub::SendRequest(common::rpc::RequestType type,
   auto buf = std::vector<char>(req.Size());
   req.Marshall(buf.data(), req.Size());
 
-  std::cout << "WorkerStub::SendRequest: bytes to send=" << req.Size() << "\n";
-  auto written = this->socket.Send(buf.data(), req.Size());
-  std::cout << "WorkerStub::SendRequest: bytes written=" << written << "\n";
-  return written;
+  return this->socket.Send(buf.data(), req.Size());
 }
 
 } // namespace worker

@@ -1,8 +1,6 @@
 #include "socket.h"
 
 #include <assert.h>
-#include <iostream>
-#include <sstream>
 #include <stdio.h>
 #include <unistd.h>
 

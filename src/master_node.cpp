@@ -4,9 +4,12 @@
 #include "common/tcp_socket.h"
 #include "master_scheduler.h"
 #include "master_stub.h"
+#include <chrono>
+#include <exception>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
+#include <thread>
 #include <vector>
 
 namespace master {
@@ -17,7 +20,14 @@ MasterNode::MasterNode() noexcept
 
 /* void MasterNode::SetScheduler(TaskScheduler ts) { this->scheduler = ts; } */
 
-void MasterNode::SetFSMount(std::string rootpath) { this->fs_root = rootpath; }
+void MasterNode::SetFSMount(std::string rootpath) {
+  this->fs_root = rootpath;
+  // Make sure root dir path ends in "/"
+  if (this->fs_root.size() > 0 &&
+      this->fs_root.substr(this->fs_root.size() - 1, 1) != "/") {
+    this->fs_root.append("/");
+  }
+}
 
 void MasterNode::SetDefaultTaskSize(int size) {
   this->task_size_default = size;
@@ -30,14 +40,26 @@ void MasterNode::ServeRequests(int port) {
     std::cerr << "Unable to bind to port=" << port << std::endl;
     return;
   }
+  // Attempt at force closing server once tasks finish. Throws an un-catchable
+  // error
+  // auto gc = [this]() {
+  //   while (!this->scheduler.IsComplete()) {
+  //     std::cout << "server still active...\n";
+  //     std::this_thread::sleep_for(std::chrono::seconds(1));
+  //   }
+  //   std::cout << "Janitor thread closing the server\n";
+  //   this->server.Close();
+  // };
+  // std::thread gc_thread{gc};
 
   // FIXME: Remove once clients exist
-  this->scheduler.Init(this->fs_root, "essay.txt", 2, "hello.sh", 1,
+  this->scheduler.Init(this->fs_root, "inputs/essay.txt", 1, "hello.sh", 1,
                        "hello.sh");
   this->scheduler.MarkReady();
 
   // TODO: Lock? probably not needed as long as only this thread uses
-  while ((in_sock = this->server.Accept())) {
+  // FIXME: Accept() will block until a new client connects. Try select(2)
+  while (!this->scheduler.IsComplete() && (in_sock = this->server.Accept())) {
     std::cout << "ConnectionListenerThread: accepted a new connection\n";
     this->coordinators.emplace_back(&MasterNode::CoordinatorThread, this,
                                     std::move(in_sock));
@@ -112,40 +134,38 @@ void MasterNode::WorkerCoordinatorThread(std::unique_ptr<MasterStub> stub) {
 
   // NOTE: Track this worker's task as a local variable (not big DS).
   // When *this thread* notices that the worker crashed, flag this task as
-  // inactive!
-  common::Task active;
+  // inactive.
+  common::Task scheduled;
 
   try {
-    while (true) {
+    while (!this->scheduler.IsComplete()) {
       common::Task next;
-      // NOTE: Pseudocode
-      // 1) Get task update
-      // 2)
-      //  a) Mark completed task as completed (or failed as idle)
-      //  b) Catch error when socket is closed. Mark task as idle
-      // 3) Assign a new task
-      active = stub->WorkerTaskUpdate();
+      common::Task active;
 
+      active = stub->WorkerTaskUpdate();
+      if (scheduled.GetStatus() == common::Status::Invalid) {
+        active.SetStatus(common::Status::Idle);
+      }
       switch (active.GetStatus()) {
       case common::Status::Idle:
-        if (active.GetStatus() == common::Status::InProgress) {
+        if (scheduled.GetStatus() == common::Status::InProgress) {
           // Worker's task failed
-          this->scheduler.UpdateTask(active, common::Status::InProgress,
+          std::cout << "Worker's task failed\n";
+          this->scheduler.UpdateTask(scheduled, common::Status::InProgress,
                                      common::Status::Idle);
         }
         next = this->scheduler.GetTask();
-        std::cout << "Worker wants a task!\n";
         stub->AssignTask(next);
-        active = next;
+        scheduled = next;
         break;
       case common::Status::InProgress:
-        // TODO: Do nothing
+        // TODO: Track scheduler metrics? Do literally anything with this info
         break;
       case common::Status::Done:
-        this->scheduler.UpdateTask(active, common::Status::InProgress,
+        this->scheduler.UpdateTask(scheduled, common::Status::InProgress,
                                    common::Status::Done);
-        active = common::Task{};
-        active.SetStatus(common::Status::Idle);
+        scheduled = common::Task{};
+        scheduled.SetStatus(common::Status::Idle);
         std::cout << "Worker finished the task!\n";
         break;
       default:
@@ -153,11 +173,12 @@ void MasterNode::WorkerCoordinatorThread(std::unique_ptr<MasterStub> stub) {
         break;
       }
     }
+    std::cout << "WorkerCoordinatorThread:: scheduler says done!\n";
   } catch (std::runtime_error &e) {
     std::cerr
         << "MasterNode::WorkerCoordinatorThread: Error with connected socket\n";
-    if (active.GetStatus() == common::Status::InProgress) {
-      this->scheduler.UpdateTask(active, common::Status::InProgress,
+    if (scheduled.GetStatus() == common::Status::InProgress) {
+      this->scheduler.UpdateTask(scheduled, common::Status::InProgress,
                                  common::Status::Idle);
     }
   }
