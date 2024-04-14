@@ -1,9 +1,11 @@
 #include "master_scheduler.h"
 #include "common/task.h"
 
+#include <algorithm>
 #include <cassert>
 #include <deque>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <mutex>
 #include <string>

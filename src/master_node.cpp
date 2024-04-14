@@ -153,7 +153,7 @@ void MasterNode::WorkerCoordinatorThread(std::unique_ptr<MasterStub> stub) {
         break;
       }
     }
-  } catch (std::runtime_error e) {
+  } catch (std::runtime_error &e) {
     std::cerr
         << "MasterNode::WorkerCoordinatorThread: Error with connected socket\n";
     if (active.GetStatus() == common::Status::InProgress) {
