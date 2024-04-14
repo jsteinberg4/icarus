@@ -126,12 +126,14 @@ public:
     unsigned int i = 0;
     while (i < contents.size()) {
       // Skip past leading white space
-      while ((i < contents.size()) && std::isspace(contents[i])) {
+      while ((i < contents.size()) &&
+             (std::isspace(contents[i]) || std::ispunct(contents[i]))) {
         i++;
       }
       // Find word end
       unsigned int word_start = i;
-      while ((i < contents.size()) && !std::isspace(contents[i])) {
+      while ((i < contents.size()) && !std::isspace(contents[i]) &&
+             !std::ispunct(contents[i])) {
         i++;
       }
       if (word_start < i) {
