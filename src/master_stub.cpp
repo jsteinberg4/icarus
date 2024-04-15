@@ -10,19 +10,15 @@
 
 namespace master {
 
-//------------------
-// Public functions
-//------------------
-/* MasterStub::MasterStub() {} */
-/* MasterStub::~MasterStub() {} */
-
 void MasterStub::Init(std::unique_ptr<common::TcpSocket> sock) {
   this->socket.swap(sock);
 }
 
 common::rpc::NodeType MasterStub::RecvRegistration() {
   common::rpc::Request req;
-  this->RecvRequest(req);
+  if (this->RecvRequest(req) < 1) {
+    throw std::runtime_error("MasterStub::WorkerTaskUpdate: socket error");
+  }
 
   if (req.GetType() == common::rpc::RequestType::Register) {
     return req.GetSender();
@@ -33,7 +29,7 @@ common::rpc::NodeType MasterStub::RecvRegistration() {
 }
 
 void MasterStub::AssignTask(common::Task &t) {
-  auto buf = std::make_unique<char>(t.Size());
+  auto buf = std::unique_ptr<char>(new char[t.Size()]);
   t.Marshall(buf.get(), t.Size());
 
   if (this->SendRequest(common::rpc::RequestType::TaskUpdate, std::move(buf),
@@ -56,7 +52,7 @@ common::Task MasterStub::WorkerTaskUpdate() {
     return t;
   }
 
-  t.Unmarshall(req.GetData().get(), req.DataSize());
+  t.Unmarshall(req.GetData(), req.DataSize());
   return t;
 }
 
@@ -64,7 +60,6 @@ common::Task MasterStub::WorkerTaskUpdate() {
 // Protected functions
 //------------------
 int MasterStub::RecvRequest(common::rpc::Request &req) const noexcept {
-  std::cout << "MasterStub::RecvRequest: start\n";
   std::vector<char> buf(req.HeaderSize());
   int b_read = 0;
 

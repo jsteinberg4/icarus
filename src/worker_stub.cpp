@@ -47,7 +47,7 @@ common::Task WorkerStub::RequestTask() {
     return common::Task{};
   }
 
-  t.Unmarshall(resp.GetData().get(), resp.DataSize());
+  t.Unmarshall(resp.GetData(), resp.DataSize());
   std::cout << "Got a new task!\n";
   return t;
 }

@@ -33,9 +33,7 @@ void Request::SetData(std::unique_ptr<char> data, int size) noexcept {
 RequestType Request::GetType() const noexcept { return this->type; }
 NodeType Request::GetSender() const noexcept { return this->sender; }
 
-const std::unique_ptr<char> &Request::GetData() const noexcept {
-  return const_cast<std::unique_ptr<char> &>(this->data);
-}
+const char *Request::GetData() const noexcept { return this->data.get(); }
 
 int Request::DataSize() const noexcept { return this->data_len; }
 int Request::Size() const noexcept {

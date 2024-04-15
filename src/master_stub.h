@@ -17,9 +17,6 @@ public:
   MasterStub() = default;
   ~MasterStub() = default;
 
-  // -------------------
-  // Initialization
-  // -------------------
   /**
    * @brief Set the socket for this stub
    *
@@ -31,7 +28,6 @@ public:
    * @brief Receive a node's identification message
    */
   common::rpc::NodeType RecvRegistration();
-  /* void AckRegistration();                   // TODO: */
 
   // -------------------
   // Client coordination

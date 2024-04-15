@@ -100,7 +100,7 @@ public:
   /**
    * @brief Get an immutable reference to the request payload
    */
-  const std::unique_ptr<char> &GetData() const noexcept;
+  const char *GetData() const noexcept;
 
   /**
    * @brief Total size
