@@ -42,8 +42,7 @@ venv/
 .vscode/
 
 # MapReduce intermediate files
-mount-point/
+mapInputs/
+reduceInputs/
+mapReduceOutputs/
 inputs/
-reducerInputs/
-
-reducerOutputs/

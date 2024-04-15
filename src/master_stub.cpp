@@ -64,6 +64,7 @@ common::Task MasterStub::WorkerTaskUpdate() {
 // Protected functions
 //------------------
 int MasterStub::RecvRequest(common::rpc::Request &req) const noexcept {
+  std::cout << "MasterStub::RecvRequest: start\n";
   std::vector<char> buf(req.HeaderSize());
   int b_read = 0;
 

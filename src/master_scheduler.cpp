@@ -1,4 +1,5 @@
 #include "master_scheduler.h"
+#include "common/shared_locations.h"
 #include "common/task.h"
 #include "common/util.h"
 
@@ -192,7 +193,8 @@ std::vector<std::string> TaskScheduler::PartitionInput(std::string fsroot,
 
     // FIXME: Input can be split in the middle of a word. Make content aware!
     if (file.read(&buf[0], task_size)) {
-      std::string fname = partition_base + std::to_string(task_id);
+      std::string fname =
+          mapper::INPUT_DIR + partition_base + std::to_string(task_id);
 
       if (std::ofstream pif{fsroot + fname}) {
         pif << buf;

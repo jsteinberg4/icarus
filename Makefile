@@ -21,6 +21,9 @@ LFLAGS := -pthread
 BASEDIR := src
 CMN_DIR := $(BASEDIR)/common
 BIN := bin
+MAP_INDIR := mapInputs
+REDUCE_INDIR := reduceInputs
+OUTDIR := mapReduceOutputs
 
 # Shared code
 CMN_HDRS := $(wildcard $(CMN_DIR)/*.h)
@@ -51,8 +54,11 @@ TARGET := master worker mapper reducer
 all:  builddir $(TARGET)
 
 builddir:
-	@echo "$(YELLOW)Create build directory $(BIN)$(END)"
+	@echo "$(YELLOW)Create build directories$(END)"
 	mkdir -p $(BIN)
+	mkdir -p $(MAP_INDIR)
+	mkdir -p $(REDUCE_INDIR)
+	mkdir -p $(OUTDIR)
 
 debug: DFLAGS := -ggdb -DDEBUG
 debug: $(TARGET)
