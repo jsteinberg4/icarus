@@ -37,60 +37,48 @@ void MasterNode::SetDefaultTaskSize(int size) {
   this->task_size_default = size;
 }
 
-void MasterNode::ServeRequests(int port) {
+void MasterNode::AcceptorThread() {
+  // TODO: Lock? probably not needed as long as only this thread uses
+  std::unique_ptr<common::TcpSocket> in_sock;
+  unsigned long tid = 0;
+  while (!this->scheduler.IsComplete() && (in_sock = this->server.Accept())) {
+    this->coordinators.emplace_back(&MasterNode::CoordinatorThread, this,
+                                    std::move(in_sock), tid++);
+  }
+}
+
+void MasterNode::ServeRequests(int port, std::string input, int n_mappers) {
   std::unique_ptr<common::TcpSocket> in_sock;
 
+  this->scheduler.Init(this->fs_root, input, n_mappers, "bin/mapper", 1,
+                       "bin/reducer");
   if (!this->server.Bind(port)) {
     std::cerr << "Unable to bind to port=" << port << std::endl;
     return;
   }
 
-  // FIXME: Move to master_main.cpp
-  std::string infile;
-  int n_mappers;
-  std::cout << "input filename> ";
-  std::cin >> infile;
-  std::cout << "# mappers> ";
-  std::cin >> n_mappers;
-  this->scheduler.Init(this->fs_root, infile, n_mappers, "bin/mapper", 1,
-                       "bin/reducer");
+  // Begin accepting workers
+  auto t_accept = std::thread{&MasterNode::AcceptorThread, this};
+
   this->scheduler.MarkReady();
-
-  auto acceptor = [this]() {
-    // TODO: Lock? probably not needed as long as only this thread uses
-    // FIXME: Accept() will block until a new client connects. Try select(2)
-    std::unique_ptr<common::TcpSocket> in_sock;
-    unsigned long tid = 0;
-    while (!this->scheduler.IsComplete()) {
-      if ((in_sock = this->server.Accept()) != nullptr) {
-        this->coordinators.emplace_back(&MasterNode::CoordinatorThread, this,
-                                        std::move(in_sock), tid++);
-      } else {
-        std::cout << "Listener says server was closed!\n";
-      }
-    }
-  };
-  auto t_accept = std::thread{acceptor};
-
   while (!this->scheduler.IsComplete()) {
     std::this_thread::sleep_for(std::chrono::seconds(5));
   }
-  std::cout << "MapReduce job complete\n";
-  std::cout << "Result file at:"
-            << common::util::NameReduceOutfile(this->fs_root, reducer::OUTDIR,
-                                               common::util::Basename(infile),
-                                               0)
-            << "\n";
   this->server.Close();
-  std::cout << "Server closed\n";
+
+  // Cleanup threads
   t_accept.join();
-  std::cout << "Listener joined\n";
   for (auto &thread : this->coordinators) {
     if (thread.joinable()) {
       thread.join();
     }
   }
-  std::cout << "Coordinators joined\n";
+
+  std::cout << "MapReduce job complete\n"
+            << "Result file at:"
+            << common::util::NameReduceOutfile(this->fs_root, reducer::OUTDIR,
+                                               common::util::Basename(input), 0)
+            << "\n";
 }
 
 // ---------------

@@ -52,7 +52,7 @@ public:
    *
    * @param port TCP port to bind and listen on
    */
-  void ServeRequests(int port);
+  void ServeRequests(int port, std::string input, int mappers);
 
 private:
   // Track if there are active clients
@@ -64,9 +64,8 @@ private:
   std::string fs_root;
   common::TcpSocket server;
 
-  // TODO: Client connection data structs
-  // TODO: Worker connection data structs
-
+  // Thread to accept incoming connections
+  void AcceptorThread();
   // Thread to comm w/ client. Should only have one.
   void CoordinatorThread(std::unique_ptr<common::TcpSocket> sock,
                          unsigned long tid);

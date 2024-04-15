@@ -1,13 +1,14 @@
-#include "common/messages.h"
 #include "master_node.h"
 #include <cstdlib>
 #include <iostream>
-#include <utility>
 
-// Usage:
-// ./master <port no>
-// TODO: Optional CLI configuration
-#define USAGE "./master <port> <path/to/root/dir>"
+constexpr const char USAGE[] =
+    "./master [port] [root directory] [input path] [mappers]\n\n"
+    "port: Specify which TCP port to listen at\n"
+    "root directory: specify an absolute path as your root directory. All "
+    "other file paths will be relative to this. Most likely $(pwd)\n"
+    "input path: Specify the task's input file. Assumed relative to the root.\n"
+    "mappers: Specify the number of map tasks to create from the input file\n";
 
 int main(int argc, char *argv[]) {
   int port;
@@ -15,23 +16,18 @@ int main(int argc, char *argv[]) {
   master::MasterNode node;
   master::TaskScheduler ts;
 
-  if (argc != 3) {
+  if (argc != 5) {
     std::cerr << USAGE << std::endl;
     return 1;
   }
   port = atoi(argv[1]);
   fsmount = std::string(argv[2]);
-  // FIXME: Mount path could be invalid
 
   // Initialization
-  /* node.SetScheduler(ts); */
-  /* node.SetWorkers(master::DEFAULT_WORKER_POOL); */
-  node.SetDefaultTaskSize(master::DEFAULT_TASK_SIZE);
+  // FIXME: Mount path could be invalid
   node.SetFSMount(fsmount);
 
-  // TODO: Cleanup?
-  node.ServeRequests(port);
-  std::cout << "Server returned!\n";
+  node.ServeRequests(port, std::string(argv[3]), atoi(argv[4]));
 
   return 0;
 }

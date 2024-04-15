@@ -108,6 +108,6 @@ $(CMN_OBJS): $(CMN_SRCS) $(CMN_HDRS)
 	$(CXX) $(CFLAGS) $(DFLAGS) -c $(CMN_SRCS)
 
 clean:
-	rm -rf $(BIN) *.o
+	rm -rf $(BIN) $(MAP_INDIR) $(REDUCE_INDIR) *.o
 
 .PHONY: clean
