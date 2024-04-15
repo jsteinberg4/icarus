@@ -9,7 +9,6 @@
 #include "common/shared_locations.h"
 #include "common/util.h"
 #include <algorithm>
-#include <cstddef>
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
@@ -54,7 +53,6 @@ protected:
       // Each line is formatted:
       // <key>,v0,v1,...vN
       // where v0...vN are comma separated strings of the values for <key>
-      std::cout << "Combining " << std::quoted(fname) << "\n";
       for (std::string line; std::getline(file, line, '\n');) {
         std::istringstream linestream(line);
         std::vector<std::string> values;
@@ -95,7 +93,6 @@ protected:
       std::cerr << "Unable to open output file " << fname << "\n";
       return 1;
     }
-    std::cout << "Persisting to file: " << fname << "\n";
 
     for (auto &kv_pair : this->results) {
       file << kv_pair.first << "," << kv_pair.second << "\n";
@@ -120,10 +117,6 @@ public:
           this->rootdir, mapper::OUTDIR,
           this->filename + "_map_" + std::to_string(x), 0));
     }
-    // FIXME: Remove this print
-    std::for_each(this->map_fnames.begin(), this->map_fnames.end(), [](auto f) {
-      std::cout << "file: " << std::quoted(f) << "\n";
-    });
   }
 
   virtual void Reduce(std::vector<std::string> &values) = 0;
@@ -169,6 +162,11 @@ int main(int argc, char *argv[]) {
 
   if (argc != 4) {
     std::cerr << reducer::cmd::USAGE << std::endl;
+    /* std::cerr << "reducer Received: "; */
+    /* for (int x = 0; x < argc; x++) { */
+    /*   std::cerr << argv[x] << " "; */
+    /* } */
+    /* std::cerr << std::endl; */
     return 1;
   }
 

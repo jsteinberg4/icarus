@@ -26,18 +26,19 @@ bool WorkerStub::Register(std::string ip, int port) {
 common::Task WorkerStub::RequestTask() {
   common::rpc::Request resp;
   common::Task t{};
+  std::unique_ptr<char> buf;
   t.SetStatus(common::Status::Idle);
-  auto buf = std::make_unique<char>(t.Size());
-  t.Marshall(buf.get(), t.Size());
 
   // Retransmit until sent
-  while (this->SendRequest(common::rpc::RequestType::TaskUpdate, std::move(buf),
-                           t.Size()) < t.Size())
-    ;
+  do {
+    buf.reset(new char[t.Size()]);
+    t.Marshall(buf.get(), t.Size());
+  } while (this->SendRequest(common::rpc::RequestType::TaskUpdate,
+                             std::move(buf), t.Size()) < t.Size());
 
   // Clear & retry
-  std::cout << "Waiting for new task...\n";
   while (this->RecvRequest(resp) < 1) {
+    std::cout << "Waiting for new task...\n";
     resp.Reset();
   }
 
@@ -52,16 +53,15 @@ common::Task WorkerStub::RequestTask() {
 }
 
 void WorkerStub::SubmitTask(common::Task &t, common::Status status) {
-  common::rpc::Request req;
   t.SetStatus(status); // TODO: move this logic into the worker?
 
-  auto buf = std::make_unique<char>(t.Size());
-  t.Marshall(buf.get(), t.Size());
-
   // Retransmit until sent
-  while (this->SendRequest(common::rpc::RequestType::TaskUpdate, std::move(buf),
-                           t.Size()) < t.Size())
-    ;
+  std::unique_ptr<char> buf;
+  do {
+    buf.reset(new char[t.Size()]);
+    t.Marshall(buf.get(), t.Size());
+  } while (this->SendRequest(common::rpc::RequestType::TaskUpdate,
+                             std::move(buf), t.Size()) < t.Size());
 }
 
 //------------------

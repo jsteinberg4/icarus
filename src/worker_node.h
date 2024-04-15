@@ -27,6 +27,6 @@ private:
    * @param t map or reduce task configuration
    * @return the result status of t
    */
-  common::Status ExecTask(common::Task &t);
+  common::Status ExecTask(common::Task t);
 };
 } // namespace worker

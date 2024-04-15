@@ -28,54 +28,48 @@ void WorkerNode::Run(std::string master_ip, int port) {
 
     if (t.GetStatus() == common::Status::InProgress) {
       auto status = this->ExecTask(t);
-      /* std::cout << "pre-submit\n"; */
       this->stub.SubmitTask(t, status);
-      /* std::cout << "post-submit\n"; */
     }
-    // FIXME: Remove
-    /* std::this_thread::sleep_for(std::chrono::seconds(2)); */
   }
 
-  std::cout << "end worker run\n";
+  std::cout << "\033[1;33mend worker run\033[0m\n";
 }
 
 //------------------
 // Private functions
 //------------------
 
-common::Status WorkerNode::ExecTask(common::Task &t) {
-  pid_t pid = fork();
+common::Status WorkerNode::ExecTask(common::Task t) {
+  int exit_status;
+  pid_t parent;
+  pid_t child = fork();
 
-  if (pid < 0) {
+  if (child < 0) {
     std::cerr << "WorkerNode::ExecTask: failed to fork task\n";
     return common::Status::Idle;
-  } else if (pid == 0) { // Child
-    // TODO: Arguments/environment vars to pass
-    std::string full_exe = (t.GetRoot() + "/" + t.GetObjPath());
-    execl(full_exe.c_str(), t.GetObjPath().c_str(), t.GetInputPath().c_str(),
-          t.GetOutPath().c_str(), NULL);
+  } else if (child == 0) { // Child
+    execl((t.GetRoot() + "/" + t.GetObjPath()).c_str(), t.GetObjPath().c_str(),
+          t.GetRoot().c_str(), t.GetInputPath().c_str(), t.GetOutPath().c_str(),
+          NULL);
 
-    // Should be unreachable; just an extra safeguard for my sanity
+    // Should be unreachable; just an extra safeguard if execl fails
     exit(1);
   }
 
   // Parent
-  int exit_status;
-  auto self = getpid();
-  std::cout << "Worker parent pid=" << self << " blocking until child=" << pid
-            << " exits/crashes\n";
-  if (waitpid(pid, &exit_status, 0) == -1) {
+  parent = getpid();
+  if (waitpid(child, &exit_status, 0) == -1) {
     // TODO: Handle errors on wait
-    std::cerr << "Parent pid=" << pid << ". Error occurred on waitpid\n";
+    std::cerr << "Parent pid=" << child << ". Error occurred on waitpid\n";
   }
 
   // Consider any program that doesnt exit(0) as a failure.
   if (WIFEXITED(exit_status) && WEXITSTATUS(exit_status) == EXIT_SUCCESS) {
-    std::cout << "Worker parent pid=" << self << " task completed\n";
+    std::cout << "Worker parent pid=" << parent << " task completed\n";
     return common::Status::Done;
   }
 
-  std::cout << "Worker parent pid=" << self << " task failed\n";
+  std::cout << "Worker parent pid=" << parent << " task failed\n";
   return common::Status::Idle;
 }
 

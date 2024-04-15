@@ -68,7 +68,7 @@ static void run_pool(std::string ip, int port, unsigned int n_workers) {
       workers.erase(std::remove(workers.begin(), workers.end(), dead),
                     workers.end());
     }
-    std::this_thread::sleep_for(std::chrono::seconds(rand() % 3));
+    std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 750));
   }
 
   // Cleanup child processes

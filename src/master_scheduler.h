@@ -176,11 +176,9 @@ private:
                                           int n_mappers);
   inline std::deque<common::Task> &GetStatusQueue(common::Status s) {
     if (s == common::Status::Idle) {
-      std::cout << "Getting idle queue\n";
       return this->idle;
     }
     if (s == common::Status::InProgress) {
-      std::cout << "Getting active queue\n";
       return this->active;
     }
 

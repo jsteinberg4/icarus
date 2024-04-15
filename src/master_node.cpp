@@ -1,14 +1,18 @@
 #include "master_node.h"
 #include "common/messages.h"
+#include "common/shared_locations.h"
 #include "common/task.h"
 #include "common/tcp_socket.h"
+#include "common/util.h"
 #include "master_scheduler.h"
 #include "master_stub.h"
+#include <algorithm>
 #include <chrono>
 #include <exception>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -40,42 +44,64 @@ void MasterNode::ServeRequests(int port) {
     std::cerr << "Unable to bind to port=" << port << std::endl;
     return;
   }
-  // Attempt at force closing server once tasks finish. Throws an un-catchable
-  // error
-  // auto gc = [this]() {
-  //   while (!this->scheduler.IsComplete()) {
-  //     std::cout << "server still active...\n";
-  //     std::this_thread::sleep_for(std::chrono::seconds(1));
-  //   }
-  //   std::cout << "Janitor thread closing the server\n";
-  //   this->server.Close();
-  // };
-  // std::thread gc_thread{gc};
 
-  // FIXME: Remove once clients exist
-  this->scheduler.Init(this->fs_root, "inputs/essay.txt", 1, "hello.sh", 1,
-                       "hello.sh");
+  // FIXME: Move to master_main.cpp
+  std::string infile;
+  int n_mappers;
+  std::cout << "input filename> ";
+  std::cin >> infile;
+  std::cout << "# mappers> ";
+  std::cin >> n_mappers;
+  this->scheduler.Init(this->fs_root, infile, n_mappers, "bin/mapper", 1,
+                       "bin/reducer");
   this->scheduler.MarkReady();
 
-  // TODO: Lock? probably not needed as long as only this thread uses
-  // FIXME: Accept() will block until a new client connects. Try select(2)
-  while (!this->scheduler.IsComplete() && (in_sock = this->server.Accept())) {
-    std::cout << "ConnectionListenerThread: accepted a new connection\n";
-    this->coordinators.emplace_back(&MasterNode::CoordinatorThread, this,
-                                    std::move(in_sock));
+  auto acceptor = [this]() {
+    // TODO: Lock? probably not needed as long as only this thread uses
+    // FIXME: Accept() will block until a new client connects. Try select(2)
+    std::unique_ptr<common::TcpSocket> in_sock;
+    unsigned long tid = 0;
+    while (!this->scheduler.IsComplete()) {
+      if ((in_sock = this->server.Accept()) != nullptr) {
+        this->coordinators.emplace_back(&MasterNode::CoordinatorThread, this,
+                                        std::move(in_sock), tid++);
+      } else {
+        std::cout << "Listener says server was closed!\n";
+      }
+    }
+  };
+  auto t_accept = std::thread{acceptor};
+
+  while (!this->scheduler.IsComplete()) {
+    std::this_thread::sleep_for(std::chrono::seconds(5));
   }
+  std::cout << "MapReduce job complete\n";
+  std::cout << "Result file at:"
+            << common::util::NameReduceOutfile(this->fs_root, reducer::OUTDIR,
+                                               common::util::Basename(infile),
+                                               0)
+            << "\n";
+  this->server.Close();
+  std::cout << "Server closed\n";
+  t_accept.join();
+  std::cout << "Listener joined\n";
+  for (auto &thread : this->coordinators) {
+    if (thread.joinable()) {
+      thread.join();
+    }
+  }
+  std::cout << "Coordinators joined\n";
 }
 
 // ---------------
 // Private functions
 // ---------------
 
-void MasterNode::CoordinatorThread(std::unique_ptr<common::TcpSocket> sock) {
-  std::cout << "CoordinatorThread start\n";
+void MasterNode::CoordinatorThread(std::unique_ptr<common::TcpSocket> sock,
+                                   unsigned long tid) {
   auto stub = std::make_unique<MasterStub>();
 
   stub->Init(std::move(sock));
-  std::cout << "MasterNode::CoordinatorThread stub is initialized\n";
   auto node_type = stub->RecvRegistration();
 
   switch (node_type) {
@@ -84,10 +110,10 @@ void MasterNode::CoordinatorThread(std::unique_ptr<common::TcpSocket> sock) {
     stub.reset(); // Close connection
     break;
   case common::rpc::NodeType::Worker:
-    this->WorkerCoordinatorThread(std::move(stub));
+    this->WorkerCoordinatorThread(std::move(stub), tid);
     break;
   case common::rpc::NodeType::Client:
-    this->ClientCoordinatorThread(std::move(stub));
+    this->ClientCoordinatorThread(std::move(stub), tid);
     break;
   case common::rpc::NodeType::Invalid:
   default:
@@ -98,9 +124,10 @@ void MasterNode::CoordinatorThread(std::unique_ptr<common::TcpSocket> sock) {
 // ---------------
 // Private functions
 // ---------------
-void MasterNode::ClientCoordinatorThread(std::unique_ptr<MasterStub> stub) {
-  // TODO: Do some work to register the client
-  std::cout << "Received a connection from a new client!\n";
+void MasterNode::ClientCoordinatorThread(std::unique_ptr<MasterStub> stub,
+                                         unsigned long tid) {
+  std::cout << "[Thread-" + std::to_string(tid) +
+                   "]Received a connection from a new client!\n";
 
   // TODO: Pseudocode
   // 1) Register client (if none already active)
@@ -128,9 +155,10 @@ void MasterNode::ClientCoordinatorThread(std::unique_ptr<MasterStub> stub) {
   // }
 }
 
-void MasterNode::WorkerCoordinatorThread(std::unique_ptr<MasterStub> stub) {
-  // TODO: Do some work to register worker
-  std::cout << "Received a connection from a worker!\n";
+void MasterNode::WorkerCoordinatorThread(std::unique_ptr<MasterStub> stub,
+                                         unsigned long tid) {
+  std::string name = "[Thread-" + std::to_string(tid) + "] ";
+  std::cout << name + "Received a connection from a worker!\n";
 
   // NOTE: Track this worker's task as a local variable (not big DS).
   // When *this thread* notices that the worker crashed, flag this task as
@@ -143,14 +171,10 @@ void MasterNode::WorkerCoordinatorThread(std::unique_ptr<MasterStub> stub) {
       common::Task active;
 
       active = stub->WorkerTaskUpdate();
-      if (scheduled.GetStatus() == common::Status::Invalid) {
-        active.SetStatus(common::Status::Idle);
-      }
       switch (active.GetStatus()) {
       case common::Status::Idle:
         if (scheduled.GetStatus() == common::Status::InProgress) {
           // Worker's task failed
-          std::cout << "Worker's task failed\n";
           this->scheduler.UpdateTask(scheduled, common::Status::InProgress,
                                      common::Status::Idle);
         }
@@ -166,15 +190,13 @@ void MasterNode::WorkerCoordinatorThread(std::unique_ptr<MasterStub> stub) {
                                    common::Status::Done);
         scheduled = common::Task{};
         scheduled.SetStatus(common::Status::Idle);
-        std::cout << "Worker finished the task!\n";
         break;
       default:
         // TODO: default case... do nothing?
         break;
       }
     }
-    std::cout << "WorkerCoordinatorThread:: scheduler says done!\n";
-  } catch (std::runtime_error &e) {
+  } catch (std::exception &e) {
     std::cerr
         << "MasterNode::WorkerCoordinatorThread: Error with connected socket\n";
     if (scheduled.GetStatus() == common::Status::InProgress) {

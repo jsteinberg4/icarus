@@ -47,7 +47,6 @@ protected:
           this->rootdir, OUTDIR, common::util::Basename(this->filename, false),
           rid);
       // Clear file contents if already exists
-      std::cout << "Creating output file: " << fname << "\n";
       outputs[rid] = std::ofstream(fname, std::ios::trunc);
 
       if (!outputs[rid].is_open()) {
@@ -106,11 +105,9 @@ public:
     contents << file.rdbuf();
 
     // Apply user function
-    std::cout << "Applying user map function\n";
     this->Map(this->filename, contents.str());
 
     // Dump output
-    std::cout << "Persisting results\n";
     return this->Persist();
   }
 };
@@ -152,6 +149,11 @@ public:
 int main(int argc, char *argv[]) {
   if (argc != 4) {
     std::cerr << mapper::cmd::USAGE << std::endl;
+    /* std::cerr << "Mapper Received: "; */
+    /* for (int x = 0; x < argc; x++) { */
+    /*   std::cerr << argv[x] << " "; */
+    /* } */
+    /* std::cerr << std::endl; */
     return 1;
   }
 

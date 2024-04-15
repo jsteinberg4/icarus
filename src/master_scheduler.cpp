@@ -49,41 +49,12 @@ void TaskScheduler::Init(std::string fsroot, std::string input_file,
 
 void TaskScheduler::UpdateTask(const common::Task &t, common::Status old,
                                common::Status new_) noexcept {
-  std::cout << "TaskScheduler::UpdateTask: Updating task from status="
-            << (int)old << " to status=" << (int)new_ << "\n";
   // Clunky, but lock the appropriate queues
   struct lock_conf lks;
   lks.EnableType(t.GetType());
   lks.EnableStatus(old);
   lks.EnableStatus(new_);
   this->LockSome(lks);
-
-  // std::cout << "Before updating task\n";
-  // if (this->idle.empty()) {
-  //   std::cout << "TaskScheduler::UpdateTask: no idle tasks\n";
-  // } else {
-  //   std::for_each(this->idle.begin(), this->idle.end(), [](common::Task &t) {
-  //     std::cout << "TaskScheduler::UpdateTask: idle task=" << t.str() <<
-  //     "\n";
-  //   });
-  // }
-  // if (this->active.empty()) {
-  //   std::cout << "TaskScheduler::UpdateTask: no active tasks\n";
-  // } else {
-  //   std::for_each(
-  //       this->active.begin(), this->active.end(), [](common::Task &t) {
-  //         std::cout << "TaskScheduler::UpdateTask: active task=" << t.str()
-  //                   << "\n";
-  //       });
-  // }
-  // if (this->done.empty()) {
-  //   std::cout << "TaskScheduler::UpdateTask: no done tasks\n";
-  // } else {
-  //   std::for_each(this->done.begin(), this->done.end(), [](common::Task &t) {
-  //     std::cout << "TaskScheduler::UpdateTask: done task=" << t.str() <<
-  //     "\n";
-  //   });
-  // }
 
   std::deque<common::Task> &q = this->GetStatusQueue(old);
   auto t_pos = std::find(q.begin(), q.end(), t);
@@ -95,33 +66,6 @@ void TaskScheduler::UpdateTask(const common::Task &t, common::Status old,
     std::deque<common::Task> &new_q = this->GetStatusQueue(new_);
     new_q.push_back(std::move(t_in_queue));
   }
-
-  // std::cout << "After updating task\n";
-  // if (this->idle.empty()) {
-  //   std::cout << "TaskScheduler::UpdateTask: no idle tasks\n";
-  // } else {
-  //   std::for_each(this->idle.begin(), this->idle.end(), [](common::Task &t) {
-  //     std::cout << "TaskScheduler::UpdateTask: idle task=" << t.str() <<
-  //     "\n";
-  //   });
-  // }
-  // if (this->active.empty()) {
-  //   std::cout << "TaskScheduler::UpdateTask: no active tasks\n";
-  // } else {
-  //   std::for_each(
-  //       this->active.begin(), this->active.end(), [](common::Task &t) {
-  //         std::cout << "TaskScheduler::UpdateTask: active task=" << t.str()
-  //                   << "\n";
-  //       });
-  // }
-  // if (this->done.empty()) {
-  //   std::cout << "TaskScheduler::UpdateTask: no done tasks\n";
-  // } else {
-  //   std::for_each(this->done.begin(), this->done.end(), [](common::Task &t) {
-  //     std::cout << "TaskScheduler::UpdateTask: done task=" << t.str() <<
-  //     "\n";
-  //   });
-  // }
 
   this->UnlockSome(lks);
 }
@@ -163,11 +107,9 @@ common::Task TaskScheduler::GetTask() {
         this->idle.push_back(t);
       }
       this->reduce_tasks.clear();
-      std::cout << "Initiating reduce phase\n";
       this->UnlockSome(lks);
     } else if (!this->reduce_done) {
       // Job just completed
-      std::cout << "Ending reduce phase\n";
       this->reduce_done = true;
       return common::Task{};
     }

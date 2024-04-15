@@ -68,10 +68,13 @@ private:
   // TODO: Worker connection data structs
 
   // Thread to comm w/ client. Should only have one.
-  void CoordinatorThread(std::unique_ptr<common::TcpSocket> sock);
+  void CoordinatorThread(std::unique_ptr<common::TcpSocket> sock,
+                         unsigned long tid);
   // Thread body to communicate w/ a worker
-  void WorkerCoordinatorThread(std::unique_ptr<MasterStub> stub);
-  void ClientCoordinatorThread(std::unique_ptr<MasterStub> stub);
+  void WorkerCoordinatorThread(std::unique_ptr<MasterStub> stub,
+                               unsigned long tid);
+  void ClientCoordinatorThread(std::unique_ptr<MasterStub> stub,
+                               unsigned long tid);
   // Thread body to communicate w/ a client
 };
 } // namespace master

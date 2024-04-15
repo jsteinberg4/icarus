@@ -39,7 +39,6 @@ std::string Task::str() const {
 }
 
 int Task::Marshall(char *buffer, int bufsize) const {
-  std::cout << "Task::Marshall " + this->str() + '\n';
   assert(this->Size() <= bufsize);
   memset(buffer, 0, bufsize);
 
@@ -136,7 +135,5 @@ void Task::Unmarshall(const char *buffer, int bufsize) {
   // Status
   memcpy(&n_status, buffer + offset, sizeof(n_status));
   this->status = (Status)ntohl(n_status);
-
-  std::cout << "Task::Unmarshall " + this->str() + '\n';
 }
 } // namespace common
