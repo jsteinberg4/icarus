@@ -2,6 +2,8 @@
 
 Limited implementation of MapReduce
 
+![build](https://github.com/OWNER/REPOSITORY/actions/workflows/build.yml/badge.svg)
+
 ## Miscellaneous Design Choices
 
 - Why C++14?
