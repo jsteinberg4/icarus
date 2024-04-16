@@ -2,7 +2,7 @@
 
 Limited implementation of MapReduce
 
-![build](https://github.com/OWNER/REPOSITORY/actions/workflows/build.yml/badge.svg)
+![build](https://github.com/jsteinberg4/icarus/actions/workflows/build.yml/badge.svg)
 
 ## Miscellaneous Design Choices
 
