@@ -112,7 +112,7 @@ public:
       this->rootdir.append("/");
     }
 
-    for (int x = 0; x < n_mappers; x++) {
+    for (unsigned int x = 0; x < n_mappers; x++) {
       this->map_fnames.push_back(common::util::NameIntermediateFile(
           this->rootdir, mapper::OUTDIR,
           this->filename + "_map_" + std::to_string(x), 0));
