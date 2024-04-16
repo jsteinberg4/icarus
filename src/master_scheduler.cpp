@@ -108,10 +108,12 @@ common::Task TaskScheduler::GetTask() {
         this->idle.push_back(t);
       }
       this->reduce_tasks.clear();
+      std::cout << "Map phase complete\n";
       this->UnlockSome(lks);
     } else if (!this->reduce_done) {
       // Job just completed
       this->reduce_done = true;
+      std::cout << "Reduce phase complete\n";
       return common::Task{};
     }
   }
