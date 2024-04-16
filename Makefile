@@ -21,6 +21,9 @@ LFLAGS := -pthread
 BASEDIR := src
 CMN_DIR := $(BASEDIR)/common
 BIN := bin
+MAP_INDIR := mapInputs
+REDUCE_INDIR := reduceInputs
+OUTDIR := mapReduceOutputs
 
 # Shared code
 CMN_HDRS := $(wildcard $(CMN_DIR)/*.h)
@@ -28,27 +31,21 @@ CMN_SRCS := $(wildcard $(CMN_DIR)/*.cpp)
 CMN_OBJS := $(patsubst $(CMN_DIR)/%.cpp,%.o,$(CMN_SRCS))
 
 # TODO: make this better
-MASTER_HDRS := $(wildcard $(BASEDIR)/Master*.h)
-MASTER_SRCS := $(wildcard $(BASEDIR)/Master*.cpp)
+MASTER_HDRS := $(wildcard $(BASEDIR)/master*.h)
+MASTER_SRCS := $(wildcard $(BASEDIR)/master*.cpp)
 MASTER_OBJS := $(notdir $(MASTER_SRCS:.cpp=.o))
 
-WORKER_HDRS := $(wildcard $(BASEDIR)/Worker*.h)
-WORKER_SRCS := $(wildcard $(BASEDIR)/Worker*.cpp)
+WORKER_HDRS := $(wildcard $(BASEDIR)/worker*.h)
+WORKER_SRCS := $(wildcard $(BASEDIR)/worker*.cpp)
 WORKER_OBJS := $(notdir $(WORKER_SRCS:.cpp=.o))
 
-MAPPER_HDRS := $(wildcard $(BASEDIR)/Mapper*.h)
-MAPPER_SRCS := $(wildcard $(BASEDIR)/Mapper*.cpp)
+MAPPER_HDRS := $(wildcard $(BASEDIR)/mapper*.h)
+MAPPER_SRCS := $(wildcard $(BASEDIR)/mapper*.cpp)
 MAPPER_OBJS := $(notdir $(MAPPER_SRCS:.cpp=.o))
 
-REDUCER_HDRS := $(wildcard $(BASEDIR)/Reducer*.h)
-REDUCER_SRCS := $(wildcard $(BASEDIR)/Reducer*.cpp)
+REDUCER_HDRS := $(wildcard $(BASEDIR)/reducer*.h)
+REDUCER_SRCS := $(wildcard $(BASEDIR)/reducer*.cpp)
 REDUCER_OBJS := $(notdir $(REDUCER_SRCS:.cpp=.o))
-
-# Flattens SRCS into the top level folder
-# OBJS := $(patsubst $(BASEDIR)/%.cpp,%.o,$(SRCS)) 
-# OBJS := $(notdir $(SRCS))
-
-# MASTER_SRCS :=  $(filter )
 
 TARGET := master worker mapper reducer
 #-------------------------------------------------------------------------------
@@ -57,7 +54,11 @@ TARGET := master worker mapper reducer
 all:  builddir $(TARGET)
 
 builddir:
+	@echo "$(YELLOW)Create build directories$(END)"
 	mkdir -p $(BIN)
+	mkdir -p $(MAP_INDIR)
+	mkdir -p $(REDUCE_INDIR)
+	mkdir -p $(OUTDIR)
 
 debug: DFLAGS := -ggdb -DDEBUG
 debug: $(TARGET)
@@ -68,9 +69,9 @@ mapper: builddir $(BIN)/mapper
 reducer: builddir $(BIN)/reducer
 	
 
-$(BIN)/master: $(CMN_OBJS) $(MASTER_OBJS)
+$(BIN)/master: $(CMN_OBJS) $(MASTER_OBJS) 
 	@echo "$(YELLOW)Compile $@$(END)"
-	$(CXX) $(CFLAGS) $(LFLAGS) -o $@ $^
+	$(CXX) $(LFLAGS) -o $@ $^
 
 $(BIN)/worker: $(CMN_OBJS) $(WORKER_OBJS)
 	@echo "$(YELLOW)Compile $@$(END)"
@@ -78,28 +79,28 @@ $(BIN)/worker: $(CMN_OBJS) $(WORKER_OBJS)
 
 $(BIN)/mapper: $(CMN_OBJS) $(MAPPER_OBJS)
 	@echo "$(YELLOW)Compile $@$(END)"
-	$(CXX) $(CFLAGS) $(LFLAGS) -o $@ $^
+	$(CXX) $(LFLAGS) -o $@ $^
 
 $(BIN)/reducer: $(CMN_OBJS) $(REDUCER_OBJS)
 	@echo "$(YELLOW)Compile $@$(END)"
-	$(CXX) $(CFLAGS) $(LFLAGS) -o $@ $^
+	$(CXX) $(LFLAGS) -o $@ $^
 
 
-$(WORKER_OBJS): $(WORKER_HDRS) $(CMN_OBJS)
+$(WORKER_OBJS): $(WORKER_HDRS) $(WORKER_SRCS)
 	@echo "Compile $@"
-	$(CXX) $(CFLAGS) $(LFLAGS) $(DFLAGS) -c $(WORKER_SRCS) $^
+	$(CXX) $(CFLAGS) $(DFLAGS) -c $(WORKER_SRCS)
 
-$(MASTER_OBJS): $(MASTER_HDRS) $(CMN_OBJS)
+$(MASTER_OBJS): $(MASTER_HDRS) $(MASTER_SRCS)
 	@echo "Compile $@"
-	$(CXX) $(CFLAGS) $(LFLAGS) $(DFLAGS) -c $(MASTER_SRCS) $^
+	$(CXX) $(CFLAGS)  $(DFLAGS) -c $(MASTER_SRCS)
 
-$(MAPPER_OBJS): $(MAPPER_HDRS) $(CMN_OBJS)
+$(MAPPER_OBJS): $(MAPPER_HDRS) $(MAPPER_SRCS)
 	@echo "Compile $@"
-	$(CXX) $(CFLAGS) $(LFLAGS) $(DFLAGS) -c $(MAPPER_SRCS) $^
+	$(CXX) $(CFLAGS) $(DFLAGS) -c $(MAPPER_SRCS)
 
-$(REDUCER_OBJS): $(REDUCER_HDRS) $(CMN_OBJS)
+$(REDUCER_OBJS): $(REDUCER_HDRS) $(REDUCER_SRCS)
 	@echo "Compile $@"
-	$(CXX) $(CFLAGS) $(LFLAGS) $(DFLAGS) -c $(REDUCER_SRCS) $^
+	$(CXX) $(CFLAGS) $(DFLAGS) -c $(REDUCER_SRCS)
 
 
 # Build any shared dependencies
@@ -107,11 +108,6 @@ $(CMN_OBJS): $(CMN_SRCS) $(CMN_HDRS)
 	$(CXX) $(CFLAGS) $(DFLAGS) -c $(CMN_SRCS)
 
 clean:
-	rm -rf $(BIN) *.o
+	rm -rf $(BIN) $(MAP_INDIR) $(REDUCE_INDIR) *.o
 
-hello:
-	@echo "hello"
-	@echo "$(OBJS)"
-	@echo "$(CMN_OBJS)"
-
-.PHONY: clean hello
+.PHONY: clean

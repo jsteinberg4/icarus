@@ -33,3 +33,16 @@
 
 # Build targets
 bin/
+
+
+# Build tools
+compile_commands.json
+.cache/
+venv/ 
+.vscode/
+
+# MapReduce intermediate files
+mapInputs/
+reduceInputs/
+mapReduceOutputs/
+inputs/
