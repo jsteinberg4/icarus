@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -16,7 +17,15 @@ void WorkerNode::Run(std::string master_ip, int port) {
     return;
   }
 
-  // TODO: Catch socket errors if master disconnects
+  try {
+    this->ForkLoop();
+  } catch (std::runtime_error &e) {
+    // Fail silently; worker will be restarted
+    return;
+  }
+}
+
+void WorkerNode::ForkLoop() {
   while (true) {
     common::Task t = this->stub.RequestTask();
 

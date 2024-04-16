@@ -2,6 +2,7 @@
 #include "common/messages.h"
 #include "common/task.h"
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -26,16 +27,16 @@ common::Task WorkerStub::RequestTask() {
   std::unique_ptr<char> buf;
   t.SetStatus(common::Status::Idle);
 
-  // Retransmit until sent
-  do {
-    buf.reset(new char[t.Size()]);
-    t.Marshall(buf.get(), t.Size());
-  } while (this->SendRequest(common::rpc::RequestType::TaskUpdate,
-                             std::move(buf), t.Size()) < t.Size());
+  buf.reset(new char[t.Size()]);
+  t.Marshall(buf.get(), t.Size());
+  if (this->SendRequest(common::rpc::RequestType::TaskUpdate, std::move(buf),
+                        t.Size()) < 0) {
+    throw std::runtime_error("WorkerStub::RequestTask: socket error");
+  }
 
   // Clear & retry
-  while (this->RecvRequest(resp) < 1) {
-    resp.Reset();
+  if (this->RecvRequest(resp) < 1) {
+    throw std::runtime_error("WorkerStub::RequestTask: socket error");
   }
 
   // Invalid task on error
@@ -52,11 +53,12 @@ void WorkerStub::SubmitTask(common::Task &t, common::Status status) {
 
   // Retransmit until sent
   std::unique_ptr<char> buf;
-  do {
-    buf.reset(new char[t.Size()]);
-    t.Marshall(buf.get(), t.Size());
-  } while (this->SendRequest(common::rpc::RequestType::TaskUpdate,
-                             std::move(buf), t.Size()) < t.Size());
+  buf.reset(new char[t.Size()]);
+  t.Marshall(buf.get(), t.Size());
+  if (this->SendRequest(common::rpc::RequestType::TaskUpdate, std::move(buf),
+                        t.Size()) < 0) {
+    throw std::runtime_error("WorkerStub::SubmitTask: socket error");
+  }
 }
 
 //------------------
