@@ -1,4 +1,7 @@
+#include "common/shared_locations.h"
+#include "common/util.h"
 #include "master_node.h"
+#include <chrono>
 #include <cstdlib>
 #include <iostream>
 
@@ -15,6 +18,7 @@ int main(int argc, char *argv[]) {
   std::string fsmount;
   master::MasterNode node;
   master::TaskScheduler ts;
+  std::chrono::milliseconds elapsed;
 
   if (argc != 5) {
     std::cerr << USAGE << std::endl;
@@ -24,10 +28,15 @@ int main(int argc, char *argv[]) {
   fsmount = std::string(argv[2]);
 
   // Initialization
-  // FIXME: Mount path could be invalid
   node.SetFSMount(fsmount);
+  elapsed = node.ServeRequests(port, std::string(argv[3]), atoi(argv[4]));
 
-  node.ServeRequests(port, std::string(argv[3]), atoi(argv[4]));
+  std::cout << "MapReduce job complete\n";
+  std::cout << "Result file at: "
+            << common::util::NameReduceOutfile(
+                   fsmount, reducer::OUTDIR, common::util::Basename(argv[3]), 0)
+            << "\n";
+  std::cout << "Time to complete: " << elapsed.count() << "ms\n";
 
   return 0;
 }

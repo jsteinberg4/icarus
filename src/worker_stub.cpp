@@ -38,7 +38,6 @@ common::Task WorkerStub::RequestTask() {
 
   // Clear & retry
   while (this->RecvRequest(resp) < 1) {
-    std::cout << "Waiting for new task...\n";
     resp.Reset();
   }
 
@@ -48,7 +47,6 @@ common::Task WorkerStub::RequestTask() {
   }
 
   t.Unmarshall(resp.GetData(), resp.DataSize());
-  std::cout << "Got a new task!\n";
   return t;
 }
 
@@ -68,15 +66,13 @@ void WorkerStub::SubmitTask(common::Task &t, common::Status status) {
 // Private functions
 //------------------
 int WorkerStub::RecvRequest(common::rpc::Request &req) noexcept {
-  std::cout << "WorkerStub::RecvRequest\n";
   std::vector<char> buf(req.HeaderSize());
   int b_read = 0;
 
   // Read the header
   if ((b_read = this->socket.Recv(buf.data(), req.HeaderSize())) !=
       req.HeaderSize()) {
-    std::cerr << "WorkerStub::RecvRequest: size header too small\n";
-    exit(1); // FIXME: Remove this. just a brief panic test
+    return -1;
   }
 
   // Read packet
@@ -85,9 +81,8 @@ int WorkerStub::RecvRequest(common::rpc::Request &req) noexcept {
   buf.resize(req.DataSize());
   if ((b_read = this->socket.Recv(buf.data(), req.DataSize())) !=
       req.DataSize()) {
-    // TODO: Set request as invalid and return
-    std::cerr << "WorkerStub::RecvRequest: packet size incorrect\n";
-    exit(1); // FIXME: Remove this. just a brief panic test
+    return -1;
+    ;
   }
   req.UnmarshallData(buf.data(), buf.size());
 
