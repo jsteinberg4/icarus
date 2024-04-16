@@ -78,7 +78,7 @@ static void run_pool(std::string ip, int port, unsigned int n_workers,
                     workers.end());
     }
 
-    /* std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 1000)); */
+    std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 1000));
 
     // Don't start failing until >1 worker started
     if (workers.size() > 1) {

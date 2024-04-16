@@ -1,7 +1,6 @@
 #include "worker_stub.h"
 #include "common/messages.h"
 #include "common/task.h"
-#include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -12,8 +11,6 @@ bool WorkerStub::Register(std::string ip, int port) {
   common::rpc::Request id;
 
   if (!this->socket.Connect(ip, port)) {
-    std::cerr << "WorkerStub::Register: Unable to connect to master: " + ip +
-                     ":" + std::to_string(port) + "\n";
     return false;
   }
 
