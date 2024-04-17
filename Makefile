@@ -107,7 +107,14 @@ $(REDUCER_OBJS): $(REDUCER_HDRS) $(REDUCER_SRCS)
 $(CMN_OBJS): $(CMN_SRCS) $(CMN_HDRS)
 	$(CXX) $(CFLAGS) $(DFLAGS) -c $(CMN_SRCS)
 
-clean:
-	rm -rf $(BIN) $(MAP_INDIR) $(REDUCE_INDIR) *.o
+clean: reset-inputs
+	rm -rf $(BIN)  *.o
+
+reset-inputs:
+	rm -rf $(MAP_INDIR) $(REDUCE_INDIR)
+	mkdir -p $(MAP_INDIR)
+	mkdir -p $(REDUCE_INDIR)
+
+
 
 .PHONY: clean
