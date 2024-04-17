@@ -69,6 +69,17 @@ $ bin/master 80080 $(pwd) inputs/triple_large.txt 100
 bin/worker <master_ip> 80080 4 5
 ```
 
+To run the word counter algorithm, using the complete works of Shakespeare partitioned into 100 map tasks, using 4 workers and no simulated failures.
+
+```bash
+# Run the master at host 12.34.56.78:54321
+$ bin/master 54321  $(pwd) inputs/complete_shakespeare.txt 100
+
+# Run the worker pool
+$ bin/worker 12.34.56.78 54321 4
+# Equivalent: bin/worker 12.34.56.78 54321 4 0
+```
+
 ## Citations
 
 [Data sources](/inputs/CITATIONS.md)
