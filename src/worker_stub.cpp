@@ -1,8 +1,8 @@
 #include "worker_stub.h"
 #include "common/messages.h"
 #include "common/task.h"
-#include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -12,8 +12,6 @@ bool WorkerStub::Register(std::string ip, int port) {
   common::rpc::Request id;
 
   if (!this->socket.Connect(ip, port)) {
-    std::cerr << "WorkerStub::Register: Unable to connect to master: " + ip +
-                     ":" + std::to_string(port) + "\n";
     return false;
   }
 
@@ -29,17 +27,16 @@ common::Task WorkerStub::RequestTask() {
   std::unique_ptr<char> buf;
   t.SetStatus(common::Status::Idle);
 
-  // Retransmit until sent
-  do {
-    buf.reset(new char[t.Size()]);
-    t.Marshall(buf.get(), t.Size());
-  } while (this->SendRequest(common::rpc::RequestType::TaskUpdate,
-                             std::move(buf), t.Size()) < t.Size());
+  buf.reset(new char[t.Size()]);
+  t.Marshall(buf.get(), t.Size());
+  if (this->SendRequest(common::rpc::RequestType::TaskUpdate, std::move(buf),
+                        t.Size()) < 0) {
+    throw std::runtime_error("WorkerStub::RequestTask: socket error");
+  }
 
   // Clear & retry
-  while (this->RecvRequest(resp) < 1) {
-    std::cout << "Waiting for new task...\n";
-    resp.Reset();
+  if (this->RecvRequest(resp) < 1) {
+    throw std::runtime_error("WorkerStub::RequestTask: socket error");
   }
 
   // Invalid task on error
@@ -48,7 +45,6 @@ common::Task WorkerStub::RequestTask() {
   }
 
   t.Unmarshall(resp.GetData(), resp.DataSize());
-  std::cout << "Got a new task!\n";
   return t;
 }
 
@@ -57,26 +53,25 @@ void WorkerStub::SubmitTask(common::Task &t, common::Status status) {
 
   // Retransmit until sent
   std::unique_ptr<char> buf;
-  do {
-    buf.reset(new char[t.Size()]);
-    t.Marshall(buf.get(), t.Size());
-  } while (this->SendRequest(common::rpc::RequestType::TaskUpdate,
-                             std::move(buf), t.Size()) < t.Size());
+  buf.reset(new char[t.Size()]);
+  t.Marshall(buf.get(), t.Size());
+  if (this->SendRequest(common::rpc::RequestType::TaskUpdate, std::move(buf),
+                        t.Size()) < 0) {
+    throw std::runtime_error("WorkerStub::SubmitTask: socket error");
+  }
 }
 
 //------------------
 // Private functions
 //------------------
 int WorkerStub::RecvRequest(common::rpc::Request &req) noexcept {
-  std::cout << "WorkerStub::RecvRequest\n";
   std::vector<char> buf(req.HeaderSize());
   int b_read = 0;
 
   // Read the header
   if ((b_read = this->socket.Recv(buf.data(), req.HeaderSize())) !=
       req.HeaderSize()) {
-    std::cerr << "WorkerStub::RecvRequest: size header too small\n";
-    exit(1); // FIXME: Remove this. just a brief panic test
+    return -1;
   }
 
   // Read packet
@@ -85,9 +80,8 @@ int WorkerStub::RecvRequest(common::rpc::Request &req) noexcept {
   buf.resize(req.DataSize());
   if ((b_read = this->socket.Recv(buf.data(), req.DataSize())) !=
       req.DataSize()) {
-    // TODO: Set request as invalid and return
-    std::cerr << "WorkerStub::RecvRequest: packet size incorrect\n";
-    exit(1); // FIXME: Remove this. just a brief panic test
+    return -1;
+    ;
   }
   req.UnmarshallData(buf.data(), buf.size());
 

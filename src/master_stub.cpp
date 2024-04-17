@@ -66,7 +66,6 @@ int MasterStub::RecvRequest(common::rpc::Request &req) const noexcept {
   // Read the size header
   b_read = this->socket->Recv(buf.data(), req.HeaderSize());
   if (b_read != req.HeaderSize()) {
-    std::cerr << "MasterStub::RecvRequest: size header too small\n";
     return -1;
   }
 
@@ -76,7 +75,6 @@ int MasterStub::RecvRequest(common::rpc::Request &req) const noexcept {
   buf.resize(req.DataSize());
   if ((b_read = this->socket->Recv(buf.data(), req.DataSize())) !=
       req.DataSize()) {
-    std::cerr << "MasterStub::RecvRequest: packet size incorrect\n";
     return -1;
   }
   req.UnmarshallData(buf.data(), buf.size());

@@ -28,5 +28,7 @@ private:
    * @return the result status of t
    */
   common::Status ExecTask(common::Task t);
+
+  void ForkLoop();
 };
 } // namespace worker

@@ -1,29 +1,32 @@
 #include "worker_node.h"
 #include "common/task.h"
-#include <chrono>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <sys/wait.h>
-#include <thread>
 #include <unistd.h>
 
 namespace worker {
 
-//------------------
-// Public functions
-//------------------
-
 void WorkerNode::Run(std::string master_ip, int port) {
+
   if (!this->stub.Register(master_ip, port)) {
-    std::cerr << "WorkerNode::run: failed to register with master\n";
+    /* std::cerr << "WorkerNode::run: failed to register with master\n"; */
     return;
   }
 
-  // TODO: Catch socket errors if master disconnects
+  try {
+    this->ForkLoop();
+  } catch (std::runtime_error &e) {
+    // Fail silently; worker will be restarted
+    return;
+  }
+}
+
+void WorkerNode::ForkLoop() {
   while (true) {
-    std::cout << "Requesting a new task!\n";
     common::Task t = this->stub.RequestTask();
 
     if (t.GetStatus() == common::Status::InProgress) {
@@ -31,17 +34,10 @@ void WorkerNode::Run(std::string master_ip, int port) {
       this->stub.SubmitTask(t, status);
     }
   }
-
-  std::cout << "\033[1;33mend worker run\033[0m\n";
 }
-
-//------------------
-// Private functions
-//------------------
 
 common::Status WorkerNode::ExecTask(common::Task t) {
   int exit_status;
-  pid_t parent;
   pid_t child = fork();
 
   if (child < 0) {
@@ -57,19 +53,16 @@ common::Status WorkerNode::ExecTask(common::Task t) {
   }
 
   // Parent
-  parent = getpid();
   if (waitpid(child, &exit_status, 0) == -1) {
-    // TODO: Handle errors on wait
-    std::cerr << "Parent pid=" << child << ". Error occurred on waitpid\n";
+    // FIXME: Better handling of wait errors
+    return common::Status::Idle;
   }
 
   // Consider any program that doesnt exit(0) as a failure.
   if (WIFEXITED(exit_status) && WEXITSTATUS(exit_status) == EXIT_SUCCESS) {
-    std::cout << "Worker parent pid=" << parent << " task completed\n";
     return common::Status::Done;
   }
 
-  std::cout << "Worker parent pid=" << parent << " task failed\n";
   return common::Status::Idle;
 }
 

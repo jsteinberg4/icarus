@@ -1,14 +1,10 @@
 #include "master_node.h"
 #include "common/messages.h"
-#include "common/shared_locations.h"
 #include "common/task.h"
 #include "common/tcp_socket.h"
-#include "common/util.h"
 #include "master_scheduler.h"
 #include "master_stub.h"
-#include <algorithm>
 #include <chrono>
-#include <exception>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -47,23 +43,27 @@ void MasterNode::AcceptorThread() {
   }
 }
 
-void MasterNode::ServeRequests(int port, std::string input, int n_mappers) {
+std::chrono::milliseconds MasterNode::ServeRequests(int port, std::string input,
+                                                    int n_mappers) {
+  std::chrono::high_resolution_clock::time_point start;
+  std::chrono::high_resolution_clock::time_point end;
   std::unique_ptr<common::TcpSocket> in_sock;
 
   this->scheduler.Init(this->fs_root, input, n_mappers, "bin/mapper", 1,
                        "bin/reducer");
   if (!this->server.Bind(port)) {
     std::cerr << "Unable to bind to port=" << port << std::endl;
-    return;
+    return std::chrono::milliseconds(0);
   }
 
   // Begin accepting workers
   auto t_accept = std::thread{&MasterNode::AcceptorThread, this};
 
+  start = std::chrono::high_resolution_clock::now();
   this->scheduler.MarkReady();
-  while (!this->scheduler.IsComplete()) {
-    std::this_thread::sleep_for(std::chrono::seconds(5));
-  }
+  while (!this->scheduler.IsComplete())
+    ;
+  end = std::chrono::high_resolution_clock::now();
   this->server.Close();
 
   // Cleanup threads
@@ -74,11 +74,7 @@ void MasterNode::ServeRequests(int port, std::string input, int n_mappers) {
     }
   }
 
-  std::cout << "MapReduce job complete\n"
-            << "Result file at:"
-            << common::util::NameReduceOutfile(this->fs_root, reducer::OUTDIR,
-                                               common::util::Basename(input), 0)
-            << "\n";
+  return std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 }
 
 // ---------------
@@ -88,11 +84,16 @@ void MasterNode::ServeRequests(int port, std::string input, int n_mappers) {
 void MasterNode::CoordinatorThread(std::unique_ptr<common::TcpSocket> sock,
                                    unsigned long tid) {
   auto stub = std::make_unique<MasterStub>();
+  common::rpc::NodeType nt;
 
   stub->Init(std::move(sock));
-  auto node_type = stub->RecvRegistration();
+  try {
+    nt = stub->RecvRegistration();
+  } catch (std::runtime_error &e) {
+    nt = common::rpc::NodeType::Invalid;
+  }
 
-  switch (node_type) {
+  switch (nt) {
   case common::rpc::NodeType::Master:
     std::cerr << "Received a connection from another master!\n";
     stub.reset(); // Close connection
@@ -105,7 +106,7 @@ void MasterNode::CoordinatorThread(std::unique_ptr<common::TcpSocket> sock,
     break;
   case common::rpc::NodeType::Invalid:
   default:
-    std::cerr << "Received a connection with invalid registration type\n";
+    return;
   }
 }
 
@@ -115,7 +116,7 @@ void MasterNode::CoordinatorThread(std::unique_ptr<common::TcpSocket> sock,
 void MasterNode::ClientCoordinatorThread(std::unique_ptr<MasterStub> stub,
                                          unsigned long tid) {
   std::cout << "[Thread-" + std::to_string(tid) +
-                   "]Received a connection from a new client!\n";
+                   "] Received a connection from a new client!\n";
 
   // TODO: Pseudocode
   // 1) Register client (if none already active)
@@ -145,13 +146,12 @@ void MasterNode::ClientCoordinatorThread(std::unique_ptr<MasterStub> stub,
 
 void MasterNode::WorkerCoordinatorThread(std::unique_ptr<MasterStub> stub,
                                          unsigned long tid) {
-  std::string name = "[Thread-" + std::to_string(tid) + "] ";
-  std::cout << name + "Received a connection from a worker!\n";
+  /* std::cout << "[Thread-" + std::to_string(tid) + "] " + "New worker\n"; */
 
   // NOTE: Track this worker's task as a local variable (not big DS).
   // When *this thread* notices that the worker crashed, flag this task as
   // inactive.
-  common::Task scheduled;
+  common::Task scheduled{};
 
   try {
     while (!this->scheduler.IsComplete()) {
@@ -184,9 +184,10 @@ void MasterNode::WorkerCoordinatorThread(std::unique_ptr<MasterStub> stub,
         break;
       }
     }
-  } catch (std::exception &e) {
-    std::cerr
-        << "MasterNode::WorkerCoordinatorThread: Error with connected socket\n";
+  } catch (std::runtime_error &e) {
+    /* std::cerr */
+    /*     << "MasterNode::WorkerCoordinatorThread: Error with connected
+     * socket\n"; */
     if (scheduled.GetStatus() == common::Status::InProgress) {
       this->scheduler.UpdateTask(scheduled, common::Status::InProgress,
                                  common::Status::Idle);

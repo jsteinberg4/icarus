@@ -4,6 +4,7 @@
 #include "master_scheduler.h"
 #include "master_stub.h"
 #include <atomic>
+#include <chrono>
 #include <memory>
 #include <string>
 #include <thread>
@@ -52,7 +53,8 @@ public:
    *
    * @param port TCP port to bind and listen on
    */
-  void ServeRequests(int port, std::string input, int mappers);
+  std::chrono::milliseconds ServeRequests(int port, std::string input,
+                                          int mappers);
 
 private:
   // Track if there are active clients
