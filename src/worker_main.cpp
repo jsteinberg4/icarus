@@ -31,7 +31,18 @@ static void init(void) {
 } // namespace signals
 
 constexpr const char USAGE[] =
-    "./worker <master IP> <master port> <# workers> [optional fail chance]";
+    "./worker <master IP> <master port> <# workers> [optional fail chance]\n"
+    "master ip: the IP address used by bin/master\n"
+    "master port: the open port specified as <port> when running bin/master\n"
+    "num workers: Specify the size of the worker pool. A value of 0 will run a "
+    "single worker instance which exits the whole program on errors. Any value "
+    "1...N will maintain a pool of N child processes, each of which "
+    "independently connects to the master.\n"
+    "failure chance: If provided, enables simulated worker failures by killing "
+    "child processes with probability 1 in <failure chance>. For example, a "
+    "value of 5 means workers will be killed with probability 1 in 5 (20%). "
+    "Num workers must be at least 1. If not provided, failure simulation is "
+    "skipped.\n";
 
 static void kill_worker(pid_t worker) {
   if (kill(worker, SIGKILL) != 0) {
