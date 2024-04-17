@@ -2,6 +2,15 @@
 
 _I Could Actually Really Use Support (ICARUS)_: A MapReduce Implementation
 
+<!--toc:start-->
+
+- [Getting Started](#getting-started)
+  - [Setup](#setup)
+  - [Usage](#usage)
+  - [Examples](#examples)
+- [Citations](#citations)
+  <!--toc:end-->
+
 ## Getting Started
 
 ### Setup
@@ -28,6 +37,23 @@ bin/
   reducer  # The Reduce binary. A summation for the word counting algorithm is implemented by default. Do not run directly.
 ```
 
+**Optional Development Dependencies**: python3, [virtualenv](https://virtualenv.pypa.io/en/latest/), [compiledb](https://github.com/nickdiego/compiledb) <br>
+`make` does not generate a `compile_commands.json` to help the clang LSP interpret code files. I use `compiledb` to generate these.
+
+```bash
+# 1) Make a virtual environment
+python3 -m pip install virtualenv # (you may already have this installed)
+python3 -m virtualenv venv
+
+# 2) Install dev dependencies
+source venv/bin/activate
+pip install -r requirements-compile.txt
+
+# 3) Generate compile_commands.json
+make clean # Force a complete rebuild
+compiledb make all
+```
+
 ### Usage
 
 All run instructions assume the repository root to be your working directory. Each of the usage messages will be printed by running `bin/master` or `bin/worker` with no arguments.
@@ -38,6 +64,7 @@ All run instructions assume the repository root to be your working directory. Ea
 $ bin/master
 Usage:
     bin/master [port] [root directory] [input path] [# mappers]
+
     port: Specify which TCP port to listen at
     root directory: Specify an absolute path as the working directory. All other filepaths internally will use this as a base. It will almost always be the repository root.
     input path: Specify the task's input file. Assumed relative to the root.
@@ -52,12 +79,15 @@ Usage:
   bin/worker <master IP> <master port> <num workers> [(optional) failure chance]
 
   master ip: the IP address used by bin/master
+
   master port: the open port specified as <port> when running bin/master
+
   num workers: Specify the size of the worker pool. A value of 0 will run a single worker instance which exits the whole program on errors. Any value 1...N will maintain a pool of N child processes, each of which independently connects to the master.
+
   failure chance: If provided, enables simulated worker failures by killing child processes with probability 1 in <failure chance>. For example, a value of 5 means workers will be killed with probability 1 in 5 (20%). Num workers must be at least 1. If not provided, failure simulation is skipped.
 ```
 
-#### Examples:
+### Examples:
 
 To run the Word Counter benchmark with the master node listening on port 80080 and 100 map partitions. Run 4 virtual nodes per bin/worker execution with a 20% chance of simulated failures.
 
